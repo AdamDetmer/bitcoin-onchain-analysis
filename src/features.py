@@ -27,6 +27,12 @@ class FeatureEngineer:
         rs = gain / loss
         df['rsi'] = 100 - (100 / (1 + rs))
 
+        # Wskaźnik SSR (Stablecoin Supply Ratio) - Kapitalizacja BTC / Kapitalizacja Stablecoinów
+        # Niskie SSR oznacza dużo "gotówki" z boku czekającej na wejście w BTC (sygnał byczy)
+        if 'stablecoin_market_cap' in df.columns and 'market_cap' in df.columns:
+            df['ssr_ratio'] = df['market_cap'] / df['stablecoin_market_cap']
+            df['stablecoin_flow_usd'] = df['stablecoin_market_cap'].diff()
+
         # Czyszczenie: Wskaźniki techniczne generują NaN na początku (np. SMA 30 potrzebuje 30 dni)
         df.dropna(inplace=True)
         

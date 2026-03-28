@@ -24,6 +24,13 @@ class DataPreprocessor:
 
         # 2. Łączenie danych (Inner join, aby mieć tylko pełne dni z obu źródeł)
         master_df = pd.merge(market_df, onchain_df, on='date', how='inner')
+
+        stablecoin_path = os.path.join(self.raw_dir, "stablecoin_data.csv")
+        if os.path.exists(stablecoin_path):
+            stable_df = pd.read_csv(stablecoin_path)
+            stable_df['date'] = pd.to_datetime(stable_df['date'])
+            master_df = pd.merge(master_df, stable_df, on='date', how='left')
+
         
         # Sortowanie po dacie (kluczowe dla szeregów czasowych!)
         master_df = master_df.sort_values('date').reset_index(drop=True)

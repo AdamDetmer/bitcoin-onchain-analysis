@@ -2,6 +2,7 @@ from src.ingestion import DataIngestor
 from src.preprocessing import DataPreprocessor
 from src.features import FeatureEngineer
 import subprocess
+import sys
 
 def run_pipeline():
     print("🚀 STARTUJEMY PIPELINE DANYCH\n")
@@ -10,6 +11,7 @@ def run_pipeline():
     ingestor = DataIngestor()
     ingestor.get_market_data(period="5y")
     ingestor.get_blockchain_com_data()
+    ingestor.get_stablecoin_data()
 
     # 2. Preprocessing
     preprocessor = DataPreprocessor()
@@ -23,7 +25,7 @@ def run_pipeline():
     print("Uruchamiam testy weryfikacyjne...\n")
     
     # 4. Wywołanie testu
-    subprocess.run(["python", "test_pipeline.py"])
+    subprocess.run([sys.executable, "test_pipeline.py"])
 
 if __name__ == "__main__":
     run_pipeline()

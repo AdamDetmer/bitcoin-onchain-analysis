@@ -80,3 +80,37 @@ class DataIngestor:
             print(f"Dane on-chain zapisane w: {path}")
             return final_onchain_df
         return None
+
+    def get_stablecoin_data(self):
+        """
+        Pobiera całkowitą kapitalizację rynkową stablecoinów z DefiLlama (darmowe API).
+        """
+        print("Pobieranie danych o stablecoinach z DefiLlama...")
+        try:
+            url = "https://stablecoins.llama.fi/stablecoincharts/all"
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+            # Ekstrakcja danych
+            df = pd.DataFrame(data)
+
+            # NAPRAWA 1: Wymuszenie typu numerycznego dla daty przed konwersją
+            df['date'] = pd.to_numeric(df['date'])
+            df['date'] = pd.to_datetime(df['date'], unit='s').dt.normalize()
+
+            # NAPRAWA 2: Wyciągnięcie wartości z zagnieżdżonego słownika {'peggedUSD': wartość}
+            df['stablecoin_market_cap'] = df['totalCirculatingUSD'].apply(
+                lambda x: x.get('peggedUSD') if isinstance(x, dict) else x
+            )
+
+            # Filtrowanie i zmiana nazw
+            df = df[['date', 'stablecoin_market_cap']]
+
+            path = os.path.join(self.base_dir, "stablecoin_data.csv")
+            df.to_csv(path, index=False)
+            print(f"Sukces! Dane stablecoin zapisane w: {path}")
+            return df
+        except Exception as e:
+            print(f"Błąd przy pobieraniu danych stablecoin: {e}")
+            return None
