@@ -12,6 +12,8 @@ def run_pipeline():
     ingestor.get_market_data(period="5y")
     ingestor.get_blockchain_com_data()
     ingestor.get_stablecoin_data()
+    ingestor.get_active_addresses_data(start_time="2014-01-01")
+    ingestor.get_lightning_network_data()
 
     # 2. Preprocessing
     preprocessor = DataPreprocessor()

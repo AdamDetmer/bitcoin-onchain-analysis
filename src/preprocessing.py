@@ -31,6 +31,21 @@ class DataPreprocessor:
             stable_df['date'] = pd.to_datetime(stable_df['date'])
             master_df = pd.merge(master_df, stable_df, on='date', how='left')
 
+        active_addr_path = os.path.join(self.raw_dir, "active_addresses_data.csv")
+        if os.path.exists(active_addr_path):
+            addr_df = pd.read_csv(active_addr_path)
+            addr_df['date'] = pd.to_datetime(addr_df['date'])
+            master_df = pd.merge(master_df, addr_df, on='date', how='left')
+            print(f"  + Aktywne adresy (CoinMetrics): {addr_df['date'].min().date()} → {addr_df['date'].max().date()}")
+
+        ln_path = os.path.join(self.raw_dir, "lightning_network_data.csv")
+        if os.path.exists(ln_path):
+            ln_df = pd.read_csv(ln_path)
+            ln_df['date'] = pd.to_datetime(ln_df['date'])
+            master_df = pd.merge(master_df, ln_df, on='date', how='left')
+            print(f"  + Lightning Network (mempool.space): {ln_df['date'].min().date()} → {ln_df['date'].max().date()}")
+            print(f"    (Uwaga: LN istnieje od 2018 — wiersze przed 2018 mają NaN w kolumnach LN)")
+
         
         # Sortowanie po dacie (kluczowe dla szeregów czasowych!)
         master_df = master_df.sort_values('date').reset_index(drop=True)
