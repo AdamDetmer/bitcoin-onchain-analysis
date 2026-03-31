@@ -33,6 +33,20 @@ class FeatureEngineer:
             df['ssr_ratio'] = df['market_cap'] / df['stablecoin_market_cap']
             df['stablecoin_flow_usd'] = df['stablecoin_market_cap'].diff()
 
+        if 'estimated-transaction-volume-usd' in df.columns :
+            if 'n-transactions' in df.columns :
+                # 1. Whale Proxy: Średnia wartość transakcji w USD (skoki oznaczają ruchy wielorybów)
+                df['whale_proxy_avg_tx'] = df['estimated-transaction-volume-usd'] / df['n-transactions']
+                # Wygładzenie 7-dniowe dla modelu (wyłapanie trendu zamiast jednodniowego szumu)
+                df['whale_trend_7d'] = df['whale_proxy_avg_tx'].rolling(window=7).mean()
+
+            if 'market_cap' in df.columns :
+                # 2. HODL Proxy (Network Velocity): Jaki % kapitalizacji zmienił dziś właściciela?
+                # Niska wartość = silny HODL. Wysoka = dystrybucja/panika.
+                df['hodl_velocity'] = df['estimated-transaction-volume-usd'] / df['market_cap']
+                # Wygładzenie 30-dniowe dla szerszego kontekstu cyklu
+                df['hodl_trend_30d'] = df['hodl_velocity'].rolling(window=30).mean()
+
         # Czyszczenie: Wskaźniki techniczne generują NaN na początku (np. SMA 30 potrzebuje 30 dni)
         df.dropna(inplace=True)
         
