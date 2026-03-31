@@ -28,9 +28,34 @@ Pobierane metryki:
 - liczba transakcji (`n-transactions`)
 - hash rate (`hash-rate`)
 - wolumen transakcji (`estimated-transaction-volume-usd`)
+- liczba unikalnych adresów dziennie (`n-unique-addresses`) ← dodane
 
 Dane zapisywane są do pliku:
 data/raw/bitcoin_onchain_data.csv
+
+### Aktywne adresy BTC
+Źródło: CoinMetrics Community API (bezpłatne, bez klucza API)  
+Metryka: `AdrActCnt` — liczba adresów, które wysłały lub odebrały BTC danego dnia  
+Zakres: od 2014-01-01 (dostępne od Genesis Block 2010-01-01)
+
+Dane zapisywane są do pliku:
+data/raw/active_addresses_data.csv
+
+### Lightning Network
+Źródło: mempool.space API (bezpłatne, bez klucza API)  
+Endpoint: `/api/v1/lightning/statistics/3y`  
+
+Pobierane metryki:
+- liczba kanałów LN (`ln_channel_count`)
+- liczba węzłów LN (`ln_node_count`)
+- pojemność sieci w satoshi (`ln_total_capacity_sat`)
+- pojemność sieci w BTC (`ln_total_capacity_btc`)
+
+Zakres: od ~2023 (dane dzienne za ostatnie 3 lata)  
+**Uwaga:** LN mainnet uruchomiono w 2018 — dane historyczne sprzed 3 lat niedostępne przez API.
+
+Dane zapisywane są do pliku:
+data/raw/lightning_network_data.csv
 
 ---
 
@@ -110,8 +135,8 @@ main.py
 | Przepływy stablecoin | Nie | brak |
 | Ruchy wielorybów | Nie | brak |
 | HODL ratio | Nie | brak |
-| Lightning Network | Nie | brak |
-| Liczba aktywnych adresów | Częściowo | brak bezpośredniego źródła |
+| Lightning Network | Tak | mempool.space, dane dzienne ~3 lata wstecz, zakres od ~2023 |
+| Liczba aktywnych adresów | Tak | CoinMetrics `AdrActCnt`, od 2014-01-01 (dostępne od 2010) |
 | Wolumen transakcji | Tak | dostępne w danych |
 | Liczba transakcji | Tak | dostępne w danych |
 
@@ -123,6 +148,8 @@ Zrealizowano:
 - pełny pipeline danych (ingestion → preprocessing → feature engineering → walidacja)
 - integrację danych rynkowych i on-chain
 - przygotowanie danych do modeli analitycznych
+- dane o aktywnych adresach z CoinMetrics (12 lat historii)
+- dane Lightning Network z mempool.space (~3 lata historii dziennej)
 
 Do dalszego rozwoju:
 - dodanie danych zaawansowanych on-chain (np. whale activity, exchange flows)
