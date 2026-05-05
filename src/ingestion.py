@@ -203,3 +203,40 @@ class DataIngestor:
         except Exception as e:
             print(f"Błąd przy pobieraniu danych stablecoin: {e}")
             return None
+
+    def get_exchange_flows_coinmetrics(self, start_time="2019-01-01"):
+        """
+        Pobiera dane o przepływach giełdowych z darmowego API CoinMetrics.
+        Metryki: ExNetFlow (Netto), ExInflow (Napływ), ExOutflow (Wypływ).
+        """
+        print(f"Pobieranie przepływów giełdowych z CoinMetrics (od {start_time})...")
+        try:
+            url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+            params = {
+                "assets": "btc",
+                "metrics": "ExNetFlow",
+                "frequency": "1d",
+                "start_time": start_time,
+                "page_size": 10000
+            }
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            result = response.json()
+
+            df = pd.DataFrame(result["data"])
+            df["date"] = pd.to_datetime(df["time"]).dt.tz_localize(None).dt.normalize()
+
+            # Konwersja metryk na liczby
+            df["net_flow"] = pd.to_numeric(df["ExNetFlow"], errors="coerce")
+            df["inflow"] = pd.to_numeric(df["ExInflow"], errors="coerce")
+            df["outflow"] = pd.to_numeric(df["ExOutflow"], errors="coerce")
+
+            df = df[["date", "net_flow", "inflow", "outflow"]].dropna()
+
+            path = os.path.join(self.base_dir, "exchange_flows_coinmetrics.csv")
+            df.to_csv(path, index=False)
+            print(f"Sukces! Przepływy zapisane w: {path}")
+            return df
+        except Exception as e:
+            print(f"Błąd CoinMetrics (Exchange Flows): {e}")
+            return None

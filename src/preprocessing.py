@@ -46,7 +46,13 @@ class DataPreprocessor:
             print(f"  + Lightning Network (mempool.space): {ln_df['date'].min().date()} → {ln_df['date'].max().date()}")
             print(f"    (Uwaga: LN istnieje od 2018 — wiersze przed 2018 mają NaN w kolumnach LN)")
 
-        
+        flows_path = os.path.join(self.raw_dir, "exchange_flows_coinmetrics.csv")
+        if os.path.exists(flows_path):
+            flows_df = pd.read_csv(flows_path)
+            flows_df['date'] = pd.to_datetime(flows_df['date'])
+            master_df = pd.merge(master_df, flows_df, on='date', how='left')
+            print("  + Przepływy giełdowe (CoinMetrics) dołączone.")
+
         # Sortowanie po dacie (kluczowe dla szeregów czasowych!)
         master_df = master_df.sort_values('date').reset_index(drop=True)
 

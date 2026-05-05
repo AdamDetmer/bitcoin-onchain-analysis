@@ -47,6 +47,33 @@ class FeatureEngineer:
                 # Wygładzenie 30-dniowe dla szerszego kontekstu cyklu
                 df['hodl_trend_30d'] = df['hodl_velocity'].rolling(window=30).mean()
 
+            if 'net_flow' in df.columns:
+                # 1. Średnia krocząca Net Flow (usuwa szum)
+                df['net_flow_sma_7'] = df['net_flow'].rolling(window=7).mean()
+                # 2. Skumulowany Net Flow (pokazuje trend akumulacji/dystrybucji)
+                df['cum_net_flow'] = df['net_flow'].cumsum()
+                # 3. Inflow Shock - czy napływ jest znacznie większy niż zwykle?
+                df['inflow_shock'] = df['inflow'] / df['inflow'].rolling(window=30).mean()
+
+            # Nowe zaawansowane cechy on-chain (Zastępstwo dla Exchange Flows)
+            if 'estimated-transaction-volume-usd' in df.columns:
+                # 1. Netflow Proxy (Zmienność wolumenu)
+                # Gwałtowne skoki wolumenu on-chain często oznaczają rzut monet na giełdy
+                df['vol_shock'] = df['estimated-transaction-volume-usd'] / df[
+                    'estimated-transaction-volume-usd'].rolling(window=30).mean()
+
+                # 2. Whale Momentum (już masz whale_proxy_avg_tx, dodajmy trend)
+                if 'whale_proxy_avg_tx' in df.columns:
+                    # Jeśli średnia wartość transakcji rośnie szybciej niż cena, to akumulacja wielorybów
+                    df['whale_intensity'] = df['whale_proxy_avg_tx'].pct_change()
+                    df['whale_pressure_30d'] = df['whale_intensity'].rolling(window=30).sum()
+
+            # 3. Metryka płynności (Stablecoin Flow)
+            if 'stablecoin_market_cap' in df.columns:
+                # Zmiana kapitalizacji stablecoinów = napływ "paliwa" do systemu
+                df['stablecoin_flow_pct'] = df['stablecoin_market_cap'].pct_change()
+                df['stable_momentum_7d'] = df['stablecoin_flow_pct'].rolling(window=7).mean()
+
         # Czyszczenie: Wskaźniki techniczne generują NaN na początku (np. SMA 30 potrzebuje 30 dni)
         df.dropna(inplace=True)
         
