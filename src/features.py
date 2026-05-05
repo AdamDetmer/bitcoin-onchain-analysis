@@ -47,6 +47,65 @@ class FeatureEngineer:
                 # Wygładzenie 30-dniowe dla szerszego kontekstu cyklu
                 df['hodl_trend_30d'] = df['hodl_velocity'].rolling(window=30).mean()
 
+            # =======================================================================
+            # HODL WAVE FEATURES
+            # =======================================================================
+
+            if 'hodl_1yr_supply' in df.columns :
+                # Zmiana tygodniowa hodl supply — detektuje moment, gdy HODLerzy zaczynają sprzedawać
+                # Ujemna delta = coins opuszczają "silne ręce" → sygnał potencjalnego szczytu
+                df['hodl_1yr_delta_7d'] = df['hodl_1yr_supply'].diff(7)
+
+                # Momentum: kierunek trendu HODL (czy rośnie czy maleje?)
+                df['hodl_1yr_momentum'] = df['hodl_1yr_supply'].rolling(14).mean() - \
+                                          df['hodl_1yr_supply'].rolling(30).mean()
+
+            if 'stale_vs_liquid_ratio' in df.columns :
+                # Trend 30-dniowy ratio stalych/płynnych BTC
+                # Rośnie → rynek się "zamraża" (bullish long-term), maleje → dystrybucja
+                df['hodl_stale_trend_30d'] = df['stale_vs_liquid_ratio'].rolling(30).mean()
+
+            if 'realized_value_usd' in df.columns and 'market_cap' in df.columns :
+                # MVRV Ratio (Market Value to Realized Value)
+                # > 3.5 = historycznie strefa przegrzania (sprzedawaj)
+                # < 1.0 = kapitulacja (kupuj)
+                # UWAGA: realized_value_usd z CoinMetrics to "RevAllTime" — nie jest to
+                # klasyczny Realized Cap. Jeśli masz dostęp do CapRealUSD, użyj jego.
+                df['mvrv_proxy'] = df['market_cap'] / (df['realized_value_usd'] + 1)
+                # Znormalizowany MVRV (z-score 365-dniowy) — redukuje bias epoki
+                mvrv_mean = df['mvrv_proxy'].rolling(365).mean()
+                mvrv_std = df['mvrv_proxy'].rolling(365).std()
+                df['mvrv_zscore'] = (df['mvrv_proxy'] - mvrv_mean) / (mvrv_std + 1e-9)
+
+            # =======================================================================
+            # WHALE TRANSACTION FEATURES
+            # =======================================================================
+
+            if 'whale_tx_above_1m' in df.columns :
+                # Anomalia wielorybów: odchylenie od 30-dniowej średniej kroczącej
+                # Skoki >2 odchyleń standardowych = niezwykła aktywność "grubych ryb"
+                whale_mean = df['whale_tx_above_1m'].rolling(30).mean()
+                whale_std = df['whale_tx_above_1m'].rolling(30).std()
+                df['whale_1m_zscore'] = (df['whale_tx_above_1m'] - whale_mean) / (whale_std + 1e-9)
+
+            if 'whale_tx_above_100k' in df.columns and 'whale_total_tx_count' in df.columns :
+                # Dominacja wielorybów — trend 14-dniowy (wygładza noise weekendów)
+                df['whale_dominance_14d'] = (
+                        df['whale_tx_above_100k'] / (df['whale_total_tx_count'] + 1) * 100
+                ).rolling(14).mean()
+
+            if 'whale_adj_transfer_usd' in df.columns and 'market_cap' in df.columns :
+                # Whale Volume Ratio: ile % market cap jest "prawdziwie" transferowane?
+                # Wysoki wynik przy spadku ceny = panic selling wielorybów (bearish)
+                # Wysoki wynik przy wzroście = akumulacja / dystrybucja
+                df['whale_vol_to_mcap'] = df['whale_adj_transfer_usd'] / (df['market_cap'] + 1)
+                df['whale_vol_mcap_7d'] = df['whale_vol_to_mcap'].rolling(7).mean()
+
+            if 'whale_median_tx_usd' in df.columns :
+                # Zmiana mediany transakcji — gdy "przeciętna" transakcja drożeje,
+                # nawet małe portfele wysyłają dużo → szeroka dystrybucja lub hype
+                df['whale_median_tx_delta'] = df['whale_median_tx_usd'].pct_change(7)
+
         # Czyszczenie: Wskaźniki techniczne generują NaN na początku (np. SMA 30 potrzebuje 30 dni)
         df.dropna(inplace=True)
         
