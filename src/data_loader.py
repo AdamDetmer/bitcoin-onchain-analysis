@@ -90,3 +90,25 @@ def load_scalers(prefix: str):
     scaler_all   = joblib.load(MODELS_DIR / f"scaler_{prefix}_all.pkl")
     scaler_price = joblib.load(MODELS_DIR / f"scaler_{prefix}_price.pkl")
     return scaler_all, scaler_price
+
+
+def select_top_features(df: pd.DataFrame, target_col: str, available_features: list, top_k: int) -> list :
+	"""
+	Wybiera top_k cech o najwyższej absolutnej korelacji z log-zwrotami celu.
+	Używamy korelacji Spearmana (odporniejsza na outliery i zależności nieliniowe).
+	"""
+	# Obliczamy log-zwroty dla ceny, bo model docelowo na nich operuje
+	target_returns = np.log(df[target_col] / df[target_col].shift(1))
+
+	correlations = {}
+	for col in available_features :
+		# Pamiętaj o usunięciu NaN przed liczeniem korelacji
+		corr = target_returns.corr(df[col], method='spearman')
+		correlations[col] = abs(corr)
+
+	# Sortowanie malejąco po wartości bezwzględnej korelacji
+	sorted_features = sorted(correlations.items(), key=lambda x : x[1], reverse=True)
+	top_features = [f[0] for f in sorted_features[:top_k]]
+
+	print(f"[data_loader] Wybrano {top_k} cech: {top_features}")
+	return top_features

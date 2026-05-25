@@ -37,7 +37,7 @@ def predict_one(model_name: str, n_steps: int) -> pd.Series:
     model.load()
 
     df, available = load_full()
-    features = ['price'] + available
+    features = model._features
 
     X, _, _, _, _ = make_sequences(df, features, model.window)
 

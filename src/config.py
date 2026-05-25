@@ -63,3 +63,6 @@ HORIZONS = {
     '3 miesiące': 90,
     '6 miesięcy': 180,
 }
+
+
+TOP_K_FEATURES = 5

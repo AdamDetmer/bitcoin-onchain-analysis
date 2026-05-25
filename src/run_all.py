@@ -15,10 +15,9 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from config import MODELS_DIR, TEST_DAYS
-from data_loader import load_full, make_sequences, train_test_split_ts
 from model_registry import get_model, all_names
-
+from config import MODELS_DIR, TEST_DAYS, TOP_K_FEATURES
+from data_loader import load_full, make_sequences, train_test_split_ts, select_top_features
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -58,7 +57,8 @@ def evaluate(model, X_test: np.ndarray, y_test: np.ndarray, df_full, scaler_pric
 
 def train_and_evaluate(model_name: str, df_full, available: list) -> dict:
     model    = get_model(model_name)
-    features = ['price'] + available
+    best_exog = select_top_features(df_full, 'price', available, TOP_K_FEATURES)
+    features = ['price'] + best_exog
 
     X, y, scaler_all, scaler_price, dates = make_sequences(df_full, features, model.window)
     X_train, X_test, y_train, y_test, _, _ = train_test_split_ts(X, y, dates, TEST_DAYS)

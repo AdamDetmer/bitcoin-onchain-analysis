@@ -15,16 +15,17 @@ Po zakończeniu zapisuje w models/<name>/:
 """
 
 import argparse
-from data_loader import load_full, make_sequences, train_test_split_ts
+from data_loader import load_full, make_sequences, train_test_split_ts, select_top_features
 from model_registry import get_model, all_names
-from config import TEST_DAYS
+from config import TEST_DAYS, TOP_K_FEATURES
 
 
 def train_one(model_name: str) -> None:
     model = get_model(model_name)
 
     df, available = load_full()
-    features = ['price'] + available
+    best_exog = select_top_features(df, 'price', available, TOP_K_FEATURES)
+    features = ['price'] + best_exog
 
     X, y, scaler_all, scaler_price, dates = make_sequences(df, features, model.window)
     X_train, X_test, y_train, y_test, _, _ = train_test_split_ts(X, y, dates, TEST_DAYS)
