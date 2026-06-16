@@ -11,15 +11,17 @@ nie wiedzą nic o konkretnych klasach.
     3. Gotowe — train.py i predict.py automatycznie go obsłużą
 """
 
-from model_lstm   import LSTMModel
-from model_blstm  import BLSTMModel
-from model_conv1d import Conv1DModel
+from model_lstm        import LSTMModel
+from model_blstm       import BLSTMModel
+from model_conv1d      import Conv1DModel
+from model_transformer import TransformerModel
 
 # klucz = nazwa używana w CLI:  python train.py --model lstm
 REGISTRY: dict[str, type] = {
-    'lstm':   LSTMModel,
-    'blstm':  BLSTMModel,
-    'conv1d': Conv1DModel,
+    'lstm':        LSTMModel,
+    'blstm':       BLSTMModel,
+    'conv1d':      Conv1DModel,
+    'transformer': TransformerModel,
 }
 
 

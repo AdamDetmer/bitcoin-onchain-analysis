@@ -53,6 +53,14 @@ MODEL_CONFIGS = {
         'kernel':     3,
         'lstm_units': 32,
     },
+    'transformer': {
+        'window':     30,
+        'd_model':    64,
+        'n_heads':    4,
+        'ff_dim':     128,
+        'n_layers':   2,
+        'latent_dim': 8,
+    },
 }
 
 # ── Horyzonty prognozy ────────────────────────────────────────────────────────

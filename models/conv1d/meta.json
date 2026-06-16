@@ -1,0 +1,15 @@
+{
+  "name": "conv1d",
+  "window": 30,
+  "features": [
+    "price",
+    "ssr_ratio",
+    "hodl_velocity",
+    "stablecoin_market_cap",
+    "whale_proxy_avg_tx",
+    "estimated-transaction-volume-usd"
+  ],
+  "n_features": 6,
+  "best_val_loss": 0.014841602183878422,
+  "epochs_run": 29
+}

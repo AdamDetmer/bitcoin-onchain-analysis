@@ -1,0 +1,67 @@
+{
+  "run_at": "2026-06-16T23:04:15.073810",
+  "models": {
+    "lstm": {
+      "model": "lstm",
+      "window": 60,
+      "n_features": 6,
+      "epochs_run": 86,
+      "train_time_sec": 140.0,
+      "metrics": {
+        "mae": 1303.76,
+        "rmse": 1874.45,
+        "mape": 1.7704,
+        "da": 49.16
+      },
+      "status": "ok"
+    },
+    "blstm": {
+      "model": "blstm",
+      "window": 14,
+      "n_features": 6,
+      "epochs_run": 48,
+      "train_time_sec": 40.0,
+      "metrics": {
+        "mae": 2132.06,
+        "rmse": 2689.98,
+        "mape": 2.9035,
+        "da": 48.04
+      },
+      "status": "ok"
+    },
+    "conv1d": {
+      "model": "conv1d",
+      "window": 30,
+      "n_features": 6,
+      "epochs_run": 29,
+      "train_time_sec": 22.1,
+      "metrics": {
+        "mae": 1604.04,
+        "rmse": 2148.26,
+        "mape": 2.176,
+        "da": 51.4
+      },
+      "status": "ok"
+    },
+    "transformer": {
+      "model": "transformer",
+      "window": 30,
+      "n_features": 6,
+      "epochs_run": 46,
+      "train_time_sec": 91.3,
+      "metrics": {
+        "mae": 1278.74,
+        "rmse": 1864.82,
+        "mape": 1.7334,
+        "da": 48.04
+      },
+      "status": "ok"
+    }
+  },
+  "ranking": [
+    "transformer",
+    "lstm",
+    "conv1d",
+    "blstm"
+  ]
+}

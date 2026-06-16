@@ -1,13 +1,3 @@
-"""
-run_all.py — Odpala trening wszystkich modeli sekwencyjnie,
-zbiera wyniki i zapisuje raport do models/training_report.json.
-
-Użycie:
-    python src/run_all.py
-    python src/run_all.py --models lstm conv1d   # tylko wybrane
-    python src/run_all.py --skip blstm           # z pominięciem
-"""
-
 import argparse
 import json
 import time
@@ -20,16 +10,14 @@ from config import MODELS_DIR, TEST_DAYS, TOP_K_FEATURES
 from data_loader import load_full, make_sequences, train_test_split_ts, select_top_features
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+import matplotlib.pyplot as plt
 
 
 # ── Metryki ───────────────────────────────────────────────────────────────────
 
 def evaluate(model, X_test: np.ndarray, y_test: np.ndarray, df_full, scaler_price) -> dict:
-    """
-    Oblicza MAE, RMSE, MAPE i DA (Direction Accuracy) na zbiorze testowym.
-    Konwertuje log-returny z powrotem na ceny przed liczeniem błędów.
-    """
-    pred_scaled = model._keras_model.predict(X_test, verbose=0)
+    raw = model._keras_model.predict(X_test, verbose=0)
+    pred_scaled  = raw[0] if isinstance(raw, (list, tuple)) else raw
     pred_returns = scaler_price.inverse_transform(pred_scaled).flatten()
 
     real_prices = df_full['price'].iloc[-len(pred_returns) - 1:-1].values
@@ -40,7 +28,6 @@ def evaluate(model, X_test: np.ndarray, y_test: np.ndarray, df_full, scaler_pric
     rmse = np.sqrt(mean_squared_error(true_prices, pred_prices))
     mape = np.mean(np.abs((true_prices - pred_prices) / true_prices)) * 100
 
-    # Direction Accuracy: czy model trafił kierunek zmiany?
     true_dir = np.sign(np.diff(true_prices))
     pred_dir = np.sign(pred_prices[1:] - true_prices[:-1])
     da = np.mean(true_dir == pred_dir) * 100
@@ -51,7 +38,6 @@ def evaluate(model, X_test: np.ndarray, y_test: np.ndarray, df_full, scaler_pric
         'mape': round(float(mape), 4),
         'da':   round(float(da),   2),
     }
-
 
 # ── Trening jednego modelu ────────────────────────────────────────────────────
 
@@ -64,11 +50,12 @@ def train_and_evaluate(model_name: str, df_full, available: list) -> dict:
     X_train, X_test, y_train, y_test, _, _ = train_test_split_ts(X, y, dates, TEST_DAYS)
 
     t_start = time.time()
+    # Zakładamy, że base_model już automatycznie zapisuje models/{model_name}/history.npy
     history = model.train(X_train, y_train, scaler_all, scaler_price, features)
     t_train = round(time.time() - t_start, 1)
 
     metrics = evaluate(model, X_test, y_test, df_full, scaler_price)
-    epochs_run = len(history.history['loss'])
+    epochs_run = len(history.history.get('loss', []))
 
     result = {
         'model':      model_name,
@@ -87,7 +74,43 @@ def train_and_evaluate(model_name: str, df_full, available: list) -> dict:
     return result
 
 
-# ── Główna funkcja ────────────────────────────────────────────────────────────
+# ── Rysowanie historii uczenia ────────────────────────────────────────────────
+
+def plot_training_histories(models_list: list[str]):
+    """Wczytuje history.npy z folderów modeli i generuje zbiorczy wykres porównawczy."""
+    plt.figure(figsize=(10, 6))
+    any_plotted = False
+    
+    for name in models_list:
+        hist_path = MODELS_DIR / name / 'history.npy'
+        if hist_path.exists():
+            # Wczytywanie z allow_pickle=True ze względu na słownik
+            history_dict = np.load(hist_path, allow_pickle=True).item()
+            
+            # Jeśli w słowniku jest val_loss (co jest standardem), preferujemy to do rysowania
+            if 'val_loss' in history_dict:
+                plt.plot(history_dict['val_loss'], label=f'{name.upper()} (val_loss)', lw=2)
+                any_plotted = True
+            elif 'loss' in history_dict:
+                plt.plot(history_dict['loss'], label=f'{name.upper()} (loss)', lw=2)
+                any_plotted = True
+
+    if any_plotted:
+        plt.title('Porównanie zbieżności modeli (Val Loss)', fontsize=14)
+        plt.xlabel('Epoka', fontsize=12)
+        plt.ylabel('Strata (MSE, log-skala)', fontsize=12)
+        plt.yscale('log')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        plot_path = MODELS_DIR / 'all_models_history_plot.png'
+        plt.tight_layout()
+        plt.savefig(plot_path, dpi=150)
+        print(f"\n  [Wykres] Zapisano zbiorczy wykres treningu do: {plot_path}")
+    else:
+        print("\n  [Wykres] Brak plików history.npy w folderach modeli do narysowania wykresu.")
+
+
 
 def run_all(targets: list[str]) -> None:
     print(f"\n{'═'*60}")
@@ -105,7 +128,6 @@ def run_all(targets: list[str]) -> None:
         'ranking':  [],
     }
 
-    # ── Trening sekwencyjny ───────────────────────────────────────────────────
     for name in targets:
         print(f"\n{'─'*60}")
         try:
@@ -116,19 +138,18 @@ def run_all(targets: list[str]) -> None:
             traceback.print_exc()
             report['models'][name] = {'model': name, 'status': 'error', 'error': str(e)}
 
-    # ── Ranking po MAPE ───────────────────────────────────────────────────────
     ranked = sorted(
         [v for v in report['models'].values() if v.get('status') == 'ok'],
         key=lambda x: x['metrics']['mape'],
     )
     report['ranking'] = [r['model'] for r in ranked]
 
-    # ── Zapis raportu ─────────────────────────────────────────────────────────
     MODELS_DIR.mkdir(exist_ok=True)
     report_path = MODELS_DIR / 'training_report.json'
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False))
 
-    # ── Podsumowanie ──────────────────────────────────────────────────────────
+    plot_training_histories([r['model'] for r in ranked])
+
     print(f"\n{'═'*60}")
     print(f"  PODSUMOWANIE")
     print(f"{'═'*60}")

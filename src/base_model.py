@@ -19,6 +19,9 @@ import numpy as np
 import pandas as pd
 import joblib
 import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')           # backend bez GUI — bezpieczne w skryptach i notebooku
+import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 from config import MODELS_DIR, BATCH_SIZE, EPOCHS, LR, PATIENCE
@@ -125,14 +128,13 @@ class BitcoinModel(ABC):
         """Zapisuje wagi, scalery i metadane."""
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
-        # Wagi (tylko parametry, nie architektura — lżejszy format)
         self._keras_model.save_weights(str(self.weights_path))
 
-        # Scalery
+        np.save(str(self.model_dir / 'history.npy'), history.history)
+
         joblib.dump(scaler_all,   self.scaler_all_path)
         joblib.dump(scaler_price, self.scaler_price_path)
 
-        # Metadane — przydatne przy ładowaniu modelu bez znajomości historii
         val_loss = history.history.get('val_loss', [None])
         meta = {
             'name':          self.name,
@@ -144,8 +146,10 @@ class BitcoinModel(ABC):
         }
         self.meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
 
+        self._plot_history(history)
+
         print(f"\n  [saved] {self.model_dir}/")
-        print(f"          weights.weights.h5  |  scaler_*.pkl  |  meta.json")
+        print(f"          weights.weights.h5  |  scaler_*.pkl  |  meta.json  |  training_history.png")
 
     def load(self) -> 'BitcoinModel':
         """
@@ -199,6 +203,111 @@ class BitcoinModel(ABC):
         return prices
 
     # ── Pomocnicze ────────────────────────────────────────────────────────────
+
+    def _plot_history(self, history, save: bool = True) -> plt.Figure:
+        """
+        Rysuje krzywe loss/val_loss (i opcjonalnie MAE) z historii treningu.
+
+        Zachowanie:
+          - Automatycznie wykrywa dostępne metryki (obsługuje modele
+            z pojedynczym outputem i multi-output, np. Transformer z AE).
+          - Zapisuje PNG do models/<name>/training_history.png.
+          - Zwraca obiekt Figure — można go wywołać bezpośrednio w notebooku.
+
+        Przykład użycia w notebooku:
+            from base_model import BitcoinModel
+            from model_registry import get_model
+            model = get_model('transformer')
+            fig = model.load()._plot_history_from_disk()
+            plt.show()
+        """
+        h = history.history
+
+        # ── Wykryj dostępne klucze ────────────────────────────────────────────
+        # Modele multi-output mają klucze jak 'price_output_loss'; obsługujemy oba
+        loss_key     = 'price_output_loss' if 'price_output_loss' in h else 'loss'
+        val_loss_key = ('val_price_output_loss' if 'val_price_output_loss' in h
+                        else 'val_loss' if 'val_loss' in h else None)
+
+        mae_key     = next((k for k in ('price_output_mae', 'mae') if k in h), None)
+        val_mae_key = next((k for k in ('val_price_output_mae', 'val_mae') if k in h), None)
+
+        has_mae = mae_key is not None
+        n_plots = 2 if has_mae else 1
+
+        fig, axes = plt.subplots(1, n_plots, figsize=(6 * n_plots, 4))
+        if n_plots == 1:
+            axes = [axes]
+
+        epochs = range(1, len(h[loss_key]) + 1)
+
+        # ── Panel 1: Loss ─────────────────────────────────────────────────────
+        ax = axes[0]
+        ax.plot(epochs, h[loss_key],     label='train loss', linewidth=1.5)
+        if val_loss_key:
+            ax.plot(epochs, h[val_loss_key], label='val loss',   linewidth=1.5,
+                    linestyle='--')
+            best_ep  = int(np.argmin(h[val_loss_key])) + 1
+            best_val = min(h[val_loss_key])
+            ax.axvline(best_ep, color='red', linestyle=':', alpha=0.6,
+                       label=f'best ep={best_ep}  val={best_val:.5f}')
+
+        ax.set_title(f'{self.name.upper()} — Loss (MSE)')
+        ax.set_xlabel('Epoka')
+        ax.set_ylabel('MSE')
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3)
+        ax.set_yscale('log')        # log-skala żeby widać było plateau
+
+        # ── Panel 2: MAE (jeśli dostępne) ─────────────────────────────────────
+        if has_mae:
+            ax2 = axes[1]
+            ax2.plot(epochs, h[mae_key],     label='train MAE', linewidth=1.5)
+            if val_mae_key:
+                ax2.plot(epochs, h[val_mae_key], label='val MAE',
+                         linewidth=1.5, linestyle='--')
+            ax2.set_title(f'{self.name.upper()} — MAE')
+            ax2.set_xlabel('Epoka')
+            ax2.set_ylabel('MAE (scaled)')
+            ax2.legend(fontsize=8)
+            ax2.grid(True, alpha=0.3)
+
+        fig.suptitle(
+            f'Historia treningu: {self.name.upper()}  '
+            f'({len(h[loss_key])} epok)',
+            fontsize=11, y=1.02,
+        )
+        fig.tight_layout()
+
+        if save:
+            out_path = self.model_dir / 'training_history.png'
+            fig.savefig(str(out_path), dpi=130, bbox_inches='tight')
+            print(f"  [plot]  {out_path}")
+
+        plt.close(fig)
+        return fig
+
+    def plot_history_from_disk(self) -> plt.Figure:
+        """
+        Odtwarza wykres historii treningu z pliku meta.json + history.npy
+        (o ile history.npy istnieje).  Przydatne w notebooku po zakończeniu treningu.
+
+        Jeśli plik history.npy nie istnieje, rzuca FileNotFoundError
+        z czytelnym komunikatem.
+        """
+        history_path = self.model_dir / 'history.npy'
+        if not history_path.exists():
+            raise FileNotFoundError(
+                f"Brak pliku historii: {history_path}\n"
+                f"Wywołaj model.train() — automatycznie zapisze history.npy."
+            )
+        h_dict = np.load(str(history_path), allow_pickle=True).item()
+
+        class _FakeHistory:
+            def __init__(self, d):
+                self.history = d
+
+        return self._plot_history(_FakeHistory(h_dict), save=False)
 
     def _callbacks(self) -> list:
         return [
