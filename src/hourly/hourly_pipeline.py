@@ -2,80 +2,79 @@ import os
 import subprocess
 import sys
 
-# Importy klas godzinowych z Twojego katalogu src/
-# Dostosuj ścieżki importu, jeśli Twoje pliki nazywają się inaczej w katalogu src/
-try :
-	from src.hourly_features import HourlyFeatureEngineer
-	from src.hourly_ingestion import HourlyDataIngestor
-	from src.hourly_preprocessing import HourlyDataPreprocessor
-except ImportError :
-	# Wariant, jeśli odpalasz skrypt bezpośrednio z folderu głównego lub bez struktury pakietowej
-	from hourly_features import HourlyFeatureEngineer
-	from hourly_ingestion import HourlyDataIngestor
-	from hourly_preprocessing import HourlyDataPreprocessor
+from hourly_ingestion import HourlyDataIngestor
+from hourly_preprocessing import HourlyDataPreprocessor
+from hourly_features import HourlyFeatureEngineer
 
 
-def run_hourly_pipeline() :
-	print("==================================================")
-	print("🚀 STARTUJEMY GODZINOWY PIPELINE DANYCH (1H)")
-	print("==================================================\n")
+def run_hourly_pipeline():
+    print("==================================================")
+    print(" STARTUJEMY CZYSZCZONY PIPELINE GODZINOWY (1H)")
+    print("==================================================\n")
 
-	# ---------------------------------------------------------
-	# 1. INGESTION (Pobieranie surowych danych godzinowych)
-	# ---------------------------------------------------------
-	print(" KROK 1: Pobieranie surowych danych godzinowych (Ingestion)...")
-	ingestor = HourlyDataIngestor()
+    # ---------------------------------------------------------
+    # 1. INGESTION (Pobieranie danych)
+    # ---------------------------------------------------------
+    print(" KROK 1: Pobieranie danych...")
+    ingestor = HourlyDataIngestor()
 
-	print(" -> [1/4] Pobieranie cen rynkowych BTC/USDT (Binance / Spot)...")
-	ingestor.get_hourly_price()
+    # A. DANE GODZINOWE (1H - Core)
+    print(" -> [1H] Pobieranie cen rynkowych BTC/USDT (Binance)...")
+    ingestor.get_hourly_price()
 
-	print(" -> [2/4] Pobieranie danych on-chain o wielorybach (Dune Analytics)...")
-	ingestor.get_whale_data()
+    print(" -> [1H] Pobieranie transakcji wielorybów >500 BTC (Dune SQL)...")
+    ingestor.get_whale_data()
 
-	print(" -> [3/4] Pobieranie danych o przepływach stablecoinów (Dune Analytics)...")
-	ingestor.get_stablecoin_data()
+    print(" -> [1H] Pobieranie przepływów stablecoinów (Dune SQL)...")
+    ingestor.get_stablecoin_data()
 
-	print(" -> [4/4] Pobieranie indeksu DVOL oraz wyliczanie Delty opcji (Deribit)...")
-	# Pobieramy dane z ostatnich 5 lat (365 * 5 dni)
-	ingestor.get_btc_options_dvol_and_delta_hourly(days_back=365 * 5)
+    print(" -> [1H] Pobieranie DVOL i wyliczanie Delty opcji (Deribit)...")
+    ingestor.get_btc_options_dvol_and_delta_hourly(days_back=365 * 5)
 
-	print("\n Pobieranie surowych danych zakończone sukcesem!\n")
+    # B. DANE DZIENNE (1D - Strukturalne tło do propagacji na 24h)
+    print(" -> [1D] Pobieranie danych HODL Wave (CoinMetrics)...")
+    ingestor.get_hodl_wave_data()
 
-	# ---------------------------------------------------------
-	# 2. PREPROCESSING (Czyszczenie, wyrównanie i fuzja tabel)
-	# ---------------------------------------------------------
-	print("🧹 KROK 2: Preprocessing, fuzja i czyszczenie szeregów czasowych...")
-	preprocessor = HourlyDataPreprocessor()
-	master_df = preprocessor.merge_and_clean()
+    print(" -> [1D] Pobieranie aktywnych adresów (CoinMetrics)...")
+    ingestor.get_active_addresses_data()
 
-	if master_df is None or master_df.empty :
-		print("[CRITICAL ERROR] Preprocessing nie zwrócił danych. Przerywam pipeline.")
-		sys.exit(1)
+    print(" -> [1D] Pobieranie statystyk Lightning Network (mempool.space)...")
+    ingestor.get_lightning_network_data()
 
-	print("\nPołączono tabele w jeden master dataset godzinowy!\n")
+    print("\n Pobieranie danych zakończone sukcesem!\n")
 
-	# ---------------------------------------------------------
-	# 3. FEATURE ENGINEERING (Generowanie cech technicznych i on-chain)
-	# ---------------------------------------------------------
-	print("KROK 3: Generowanie cech technicznych, DVOL Z-Score i Greków...")
-	engineer = HourlyFeatureEngineer()
-	final_df = engineer.generate_features()
+    # ---------------------------------------------------------
+    # 2. PREPROCESSING (Fuzja 1H + 1D)
+    # ---------------------------------------------------------
+    print(" KROK 2: Preprocessing i fuzja danych w jeden Master Dataset...")
+    preprocessor = HourlyDataPreprocessor()
+    master_df = preprocessor.merge_and_clean()
 
-	print("\n PIPELINE DANYCH GODZINOWYCH ZAKOŃCZONY SUKCESEM!")
-	print(f" Utworzono zbiorczy plik: data/hourly/processed/bitcoin_hourly_final.csv")
-	print(f"Liczba wierszy (godzin): {len(final_df)} | Liczba cech (kolumn): {len(final_df.columns)}")
+    if master_df is None or master_df.empty:
+        print(" [CRITICAL ERROR] Preprocessing się wyłożył. Przerywam.")
+        sys.exit(1)
 
-	# ---------------------------------------------------------
-	# 4. WERYFIKACJA I TESTY
-	# ---------------------------------------------------------
-	test_script = "test_hourly_pipeline.py" if os.path.exists("test_hourly_pipeline.py") else "test_pipeline.py"
+    # ---------------------------------------------------------
+    # 3. FEATURE ENGINEERING (Wskaźniki techniczne + Greki + Z-Score)
+    # ---------------------------------------------------------
+    print("️ KROK 3: Wyliczanie cech ekonometrycznych i wskaźników...")
+    engineer = HourlyFeatureEngineer()
+    final_df = engineer.generate_features()
 
-	if os.path.exists(test_script) :
-		print(f"\n Uruchamiam testy weryfikacyjne z pliku {test_script}...\n")
-		subprocess.run([sys.executable, test_script])
-	else :
-		print("\n️ Pomijam krok testów (brak pliku testowego test_pipeline.py).")
+    print("\n==================================================")
+    print(" GOTOWE! PIPELINE PRZETWORZYŁ CAŁY ZBIOR DANYCH")
+    print("==================================================")
+    print(f" Zapisano plik: data/hourly/processed/bitcoin_hourly_final.csv")
+    print(f" Wymiary zbioru: {final_df.shape[0]} wierszy (godzin) x {final_df.shape[1]} kolumn\n")
+
+    # ---------------------------------------------------------
+    # 4. AUTOMATYCZNY TEST INTEGRALNOŚCI DANYCH
+    # ---------------------------------------------------------
+    test_script = "test_hourly_pipeline.py"
+    if os.path.exists(test_script):
+        print(" Uruchamiam testy weryfikacyjne...")
+        subprocess.run([sys.executable, test_script])
 
 
-if __name__ == "__main__" :
-	run_hourly_pipeline()
+if __name__ == "__main__":
+    run_hourly_pipeline()

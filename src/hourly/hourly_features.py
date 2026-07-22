@@ -18,11 +18,18 @@ class HourlyFeatureEngineer:
                 f"Nie znaleziono pliku: {file_path}. Uruchom najpierw HourlyDataPreprocessor!"
             )
 
-        self.df = pd.read_csv(file_path)
+        # 1. low_memory=False zapobiega ostrzeżeniom DtypeWarning przy wczytywaniu
+        self.df = pd.read_csv(file_path, low_memory=False)
 
-        # Standaryzacja kolumny czasu
+        # 2. Standaryzacja kolumny czasu z format="mixed" oraz utc=True
         time_col = "timestamp" if "timestamp" in self.df.columns else "date"
-        self.df["timestamp"] = pd.to_datetime(self.df[time_col])
+        if time_col not in self.df.columns:
+            time_col = self.df.columns[0]
+
+        self.df["timestamp"] = pd.to_datetime(
+            self.df[time_col], format="mixed", utc=True
+        ).dt.tz_localize(None)
+
         if time_col != "timestamp":
             self.df.drop(columns=[time_col], inplace=True)
 
@@ -32,10 +39,20 @@ class HourlyFeatureEngineer:
         print("=== GENEROWANIE CECH GODZINOWYCH (FEATURE ENGINEERING) ===")
         df = self.df.copy()
 
-        # Szukamy właściwej kolumny cenowej (close / price)
-        price_col = "close" if "close" in df.columns else "price"
-        if price_col not in df.columns:
-            raise KeyError("Brak kolumny cenowej ('close' lub 'price') w DataFrame!")
+        # Szukamy właściwej kolumny cenowej (Close / close / price)
+        price_col = None
+        for col in ["Close", "close", "price"]:
+            if col in df.columns:
+                price_col = col
+                break
+
+        if price_col is None:
+            raise KeyError(
+                f"Brak kolumny cenowej ('Close', 'close' lub 'price') w DataFrame! Dostępne: {list(df.columns)}"
+            )
+
+        # Konwersja kolumny cenowej na float w razie gdyby była obiektem
+        df[price_col] = pd.to_numeric(df[price_col], errors="coerce")
 
         # ---------------------------------------------------------------------
         # 1. STOPY ZWROTU I ZMIENNOŚĆ (Price Returns & Volatility)
@@ -51,7 +68,7 @@ class HourlyFeatureEngineer:
         df["sma_168h"] = df[price_col].rolling(window=168).mean()
         df["sma_720h"] = df[price_col].rolling(window=720).mean()
 
-        # RSI - Relative Strength Index (Standardowe 14 godzin oraz 168 godzin / 7 dni)
+        # RSI - Relative Strength Index (14 godzin oraz 168 godzin / 7 dni)
         delta = df[price_col].diff()
         gain_14 = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss_14 = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -65,7 +82,7 @@ class HourlyFeatureEngineer:
         df["macd_signal"] = df["macd_line"].ewm(span=9, adjust=False).mean()
         df["macd_hist"] = df["macd_line"] - df["macd_signal"]
 
-        # Wstęgi Bollingera (20 godzin, 2 odchylenia standardowe)
+        # Wstęgi Bollingera (20 godzin)
         sma_20 = df[price_col].rolling(window=20).mean()
         std_20 = df[price_col].rolling(window=20).std()
         df["bollinger_upper"] = sma_20 + (std_20 * 2)
@@ -78,23 +95,32 @@ class HourlyFeatureEngineer:
         # 2. RYNEK OPCJI I GREKI (Deribit Options & Volatility)
         # ---------------------------------------------------------------------
         if "dvol_close" in df.columns:
-            print("  [2/5] Obliczanie wskaźników rynku opcji (Deribit DVOL/Delta)...")
+            print(
+                "  [2/5] Obliczanie wskaźników rynku opcji (Deribit DVOL/Delta)..."
+            )
+            df["dvol_close"] = pd.to_numeric(df["dvol_close"], errors="coerce")
 
             # 24-godzinna zmiana indeksu DVOL
             df["dvol_pct_change_24h"] = df["dvol_close"].pct_change(24)
 
-            # Z-score DVOL z okna 7-dniowego (168h) - wykrywa nagłe skoki strachu/optymizmu
+            # Z-score DVOL z okna 7-dniowego (168h)
             dvol_mean_168 = df["dvol_close"].rolling(168).mean()
             dvol_std_168 = df["dvol_close"].rolling(168).std()
             df["dvol_zscore_168h"] = (df["dvol_close"] - dvol_mean_168) / (
                 dvol_std_168 + 1e-9
             )
 
-            # Delta Spread (Różnica między Deltą Call i Put ATM 30d)
+            # Delta Spread
             if (
                 "delta_call_atm_30d" in df.columns
                 and "delta_put_atm_30d" in df.columns
             ):
+                df["delta_call_atm_30d"] = pd.to_numeric(
+                    df["delta_call_atm_30d"], errors="coerce"
+                )
+                df["delta_put_atm_30d"] = pd.to_numeric(
+                    df["delta_put_atm_30d"], errors="coerce"
+                )
                 df["delta_spread_30d"] = (
                     df["delta_call_atm_30d"] - df["delta_put_atm_30d"]
                 )
@@ -102,31 +128,15 @@ class HourlyFeatureEngineer:
                     "delta_call_atm_30d"
                 ].diff(24)
 
-            # Wybicia z oczekiwanych widełek cenowych opcji (Breaches)
-            if "implied_upper_bound_usd" in df.columns:
-                df["price_above_options_upper"] = (
-                    df[price_col] > df["implied_upper_bound_usd"]
-                ).astype(int)
-                df["price_below_options_lower"] = (
-                    df[price_col] < df["implied_lower_bound_usd"]
-                ).astype(int)
-
         # ---------------------------------------------------------------------
         # 3. TRANSAKCJE WIELORYBÓW (Whale Metrics - Dune & Market)
         # ---------------------------------------------------------------------
         print("  [3/5] Obliczanie wskaźników transakcji wielorybów...")
 
-        if "avg_trade_size_usd" in df.columns:
-            # Wygładzona średnia wielkość transakcji na giełdzie (24h i 168h)
-            df["avg_trade_size_sma_24h"] = (
-                df["avg_trade_size_usd"].rolling(24).mean()
-            )
-            df["whale_trade_intensity_pct"] = (
-                df["avg_trade_size_usd"].pct_change(1)
-            )
-
         if "whale_tx_count" in df.columns:
-            # Anomalia liczby dużych przelewów on-chain (>500 BTC) z okna 7-dniowego
+            df["whale_tx_count"] = pd.to_numeric(
+                df["whale_tx_count"], errors="coerce"
+            )
             w_mean = df["whale_tx_count"].rolling(168).mean()
             w_std = df["whale_tx_count"].rolling(168).std()
             df["whale_tx_count_zscore_168h"] = (
@@ -134,7 +144,9 @@ class HourlyFeatureEngineer:
             ) / (w_std + 1e-9)
 
         if "total_whale_volume_btc" in df.columns:
-            # Pęd wolumenu wielorybów (Suma 24h vs Suma 168h)
+            df["total_whale_volume_btc"] = pd.to_numeric(
+                df["total_whale_volume_btc"], errors="coerce"
+            )
             df["whale_vol_sum_24h"] = (
                 df["total_whale_volume_btc"].rolling(24).sum()
             )
@@ -147,8 +159,13 @@ class HourlyFeatureEngineer:
         # ---------------------------------------------------------------------
         if "usdt_volume_usd" in df.columns and "usdc_volume_usd" in df.columns:
             print("  [4/5] Obliczanie wskaźników płynności stablecoinów...")
+            df["usdt_volume_usd"] = pd.to_numeric(
+                df["usdt_volume_usd"], errors="coerce"
+            )
+            df["usdc_volume_usd"] = pd.to_numeric(
+                df["usdc_volume_usd"], errors="coerce"
+            )
 
-            # Całkowity wolumen transferów USDT + USDC
             df["total_stablecoin_vol_usd"] = (
                 df["usdt_volume_usd"].fillna(0)
                 + df["usdc_volume_usd"].fillna(0)
@@ -160,38 +177,18 @@ class HourlyFeatureEngineer:
                 "total_stablecoin_vol_usd"
             ].pct_change(24)
 
-            # Sumaryczna liczba dużych transakcji stablecoinami (>100k USD)
-            if (
-                "usdt_whale_tx_count" in df.columns
-                and "usdc_whale_tx_count" in df.columns
-            ):
-                df["total_stablecoin_whale_txs"] = (
-                    df["usdt_whale_tx_count"].fillna(0)
-                    + df["usdc_whale_tx_count"].fillna(0)
-                )
-                s_mean = df["total_stablecoin_whale_txs"].rolling(168).mean()
-                s_std = df["total_stablecoin_whale_txs"].rolling(168).std()
-                df["stable_whale_tx_zscore_168h"] = (
-                    df["total_stablecoin_whale_txs"] - s_mean
-                ) / (s_std + 1e-9)
-
-            # Tether vs Circle Dominance (Stosunek USDT do USDC)
-            df["usdt_dominance_ratio"] = df["usdt_volume_usd"] / (
-                df["total_stablecoin_vol_usd"] + 1e-9
-            )
-
         # ---------------------------------------------------------------------
         # 5. CZYSZCZENIE I ZAPIS KOŃCOWEGO ZBIORU
         # ---------------------------------------------------------------------
         print("  [5/5] Czyszczenie wartości NaN po okienkach kroczących...")
 
-        # Usuwamy pierwsze wiersze, które zawierają NaN w wyniku najdłuższego okna (np. SMA 720h)
+        # Usuwamy wiersze z początkowego okna SMA (720 godzin = 30 dni)
         initial_len = len(df)
-        df.dropna(inplace=True)
+        df.dropna(subset=["sma_720h"], inplace=True)
         df.reset_index(drop=True, inplace=True)
 
         print(
-            f"  Odrzucono {initial_len - len(df)} początkowych wierszy zawierających NaN."
+            f"  Odrzucono {initial_len - len(df)} początkowych wierszy rozgrzewkowych (okno 30-dniowe SMA)."
         )
 
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
