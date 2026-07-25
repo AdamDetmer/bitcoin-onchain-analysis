@@ -311,49 +311,103 @@ class HourlyDataIngestor :
             return None
 
     def get_lightning_network_data(self):
-        """
-        Pobiera historyczne dane Lightning Network z mempool.space.
-        Pobiera: liczbę kanałów, węzłów oraz pojemność sieci (satoshi).
-        """
-        print("Pobieranie danych Lightning Network z mempool.space...")
+        """Pobiera historię pojemności Lightning Network (BTC oraz USD) z API DefiLlama."""
+        print("Pobieranie danych Lightning Network z DefiLlama...")
         try:
-            # Endpoint zwraca dane dzienne za ~3 lata (najdłuższy dostępny zakres)
-            url = "https://mempool.space/api/v1/lightning/statistics/3y"
+            url = "https://api.llama.fi/protocol/lightning-network"
             response = requests.get(url, timeout=30)
             response.raise_for_status()
             data = response.json()
 
-            df = pd.DataFrame(data)
-            df["date"] = pd.to_datetime(df["added"], unit="s").dt.normalize()
-            # Historyczne API mempool nie ma 'node_count', ale ma sumę składowych
-            if "node_count" not in df.columns:
-                node_cols = ["tor_nodes", "clearnet_nodes", "unannounced_nodes", "clearnet_tor_nodes"]
-                available_cols = [c for c in node_cols if c in df.columns]
-                df["ln_node_count"] = df[available_cols].sum(axis=1)
-            else:
-                df = df.rename(columns={"node_count": "ln_node_count"})
+            # 1. Pojemność w BTC z klucza 'tokens'
+            tokens_history = data.get("tokens", [])
+            btc_records = []
+            for entry in tokens_history:
+                date = (
+                    pd.to_datetime(entry["date"], unit="s")
+                    .tz_localize(None)
+                    .normalize()
+                )
+                btc_cap = entry.get("tokens", {}).get("BTC", None)
+                if btc_cap is not None:
+                    btc_records.append(
+                        {"date": date, "ln_total_capacity_btc": btc_cap}
+                    )
 
-            df = df.rename(columns={
-                "channel_count": "ln_channel_count",
-                "total_capacity": "ln_total_capacity_sat"
-            })
+            df_btc = pd.DataFrame(btc_records)
 
-            # Zachowaj tylko kluczowe kolumny i filtruj anomalie (channel_count=0 to błędy)
-            df = df[["date", "ln_channel_count", "ln_node_count", "ln_total_capacity_sat"]]
-            df = df[df["ln_channel_count"] > 0]
+            # 2. Pojemność w USD z klucza 'tvl'
+            tvl_history = data.get("tvl", [])
+            usd_records = []
+            for entry in tvl_history:
+                date = (
+                    pd.to_datetime(entry["date"], unit="s")
+                    .tz_localize(None)
+                    .normalize()
+                )
+                usd_cap = entry.get("totalLiquidityUSD", None)
+                if usd_cap is not None:
+                    usd_records.append(
+                        {"date": date, "ln_total_capacity_usd": usd_cap}
+                    )
 
-            # Pojemność z satoshi na BTC (czytelniejsze)
-            df["ln_total_capacity_btc"] = df["ln_total_capacity_sat"] / 1e8
+            df_usd = pd.DataFrame(usd_records)
 
-            # Usuń duplikaty dat (zachowaj ostatni rekord dla danej daty)
-            df = df.sort_values("date").drop_duplicates(subset="date", keep="last")
-            df = df.reset_index(drop=True)
+            # Merge obu serii po dacie
+            df = pd.merge(df_btc, df_usd, on="date", how="inner")
+            df = (
+                df.drop_duplicates(subset=["date"])
+                .sort_values("date")
+                .reset_index(drop=True)
+            )
 
             path = os.path.join(self.base_dir, "lightning_network_data.csv")
             df.to_csv(path, index=False)
-            print(f"Sukces! Dane LN zapisane w: {path} ({len(df)} rekordów)")
-            print(f"   Zakres: {df['date'].min().date()} → {df['date'].max().date()}")
+            print(
+                f"Sukces! Dane LN (DefiLlama) zapisane w: {path} ({len(df)} dni)"
+            )
+            print(
+                f"   Zakres: {df['date'].min().date()} → {df['date'].max().date()}"
+            )
             return df
         except Exception as e:
-            print(f"Błąd przy pobieraniu danych Lightning Network: {e}")
+            print(f"Błąd przy pobieraniu danych LN z DefiLlama: {e}")
+            return None
+
+    def get_btc_total_supply(self):
+        """Pobiera dzienna podaż Bitcoina w obiegu z Blockchain.com (zamiast sztywnego 19.7M)."""
+        print(
+            "Pobieranie historii podaży BTC (Circulating Supply) z Blockchain.com..."
+        )
+        try:
+            url = "https://api.blockchain.info/charts/total-bitcoins"
+            params = {
+                "timespan": "5years",
+                "sampled": "true",
+                "format": "json",
+                "cors": "true",
+            }
+            r = requests.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+
+            df = pd.DataFrame(data["values"])
+            df.columns = ["timestamp", "btc_total_supply"]
+            df["date"] = (
+                pd.to_datetime(df["timestamp"], unit="s")
+                .dt.tz_localize(None)
+                .dt.normalize()
+            )
+            df = df[["date", "btc_total_supply"]].drop_duplicates(
+                subset=["date"]
+            )
+
+            path = os.path.join(self.base_dir, "btc_total_supply.csv")
+            df.to_csv(path, index=False)
+            print(
+                f"Sukces! Historia podaży BTC zapisana w: {path} ({len(df)} dni)"
+            )
+            return df
+        except Exception as e:
+            print(f"Błąd pobierania podaży BTC: {e}")
             return None

@@ -110,7 +110,21 @@ class HourlyFeatureEngineer:
                 dvol_std_168 + 1e-9
             )
 
-            # Delta Spread
+            # DVOL=60 -> 60% rocznie -> ~3.14% oczekiwanego ruchu dziennie
+
+            implied_daily_move_pct = (df["dvol_close"] / 100.0) / np.sqrt(365)
+            implied_upper_bound = df[price_col] * (1 + implied_daily_move_pct)
+            implied_lower_bound = df[price_col] * (1 - implied_daily_move_pct)
+
+            # 3. Flagi binarne: Wybicia z widełek wycenionych 24h wcześniej (shift 24h)
+            df["price_above_options_upper"] = (
+                    df[price_col] > implied_upper_bound.shift(24)
+            ).astype(int)
+            df["price_below_options_lower"] = (
+                    df[price_col] < implied_lower_bound.shift(24)
+            ).astype(int)
+
+            # 4. Delta Spread
             if (
                 "delta_call_atm_30d" in df.columns
                 and "delta_put_atm_30d" in df.columns
@@ -118,12 +132,11 @@ class HourlyFeatureEngineer:
                 df["delta_call_atm_30d"] = pd.to_numeric(
                     df["delta_call_atm_30d"], errors="coerce"
                 )
-                df["delta_put_atm_30d"] = pd.to_numeric(
-                    df["delta_put_atm_30d"], errors="coerce"
-                )
-                df["delta_spread_30d"] = (
-                    df["delta_call_atm_30d"] - df["delta_put_atm_30d"]
-                )
+
+                # 1. Odchylenie Delty ATM od poziomu neutralnego 0.5 (Zmienia się w czasie!)
+                df["delta_call_bias_30d"] = df["delta_call_atm_30d"] - 0.5
+
+                # 2. Pęd Delty Call (Zmiana 24h)
                 df["delta_call_momentum_24h"] = df[
                     "delta_call_atm_30d"
                 ].diff(24)
@@ -176,6 +189,36 @@ class HourlyFeatureEngineer:
             df["stablecoin_vol_momentum_24h"] = df[
                 "total_stablecoin_vol_usd"
             ].pct_change(24)
+
+        if "ln_total_capacity_btc" in df.columns :
+            print("  Obliczanie dynamicznych wskaźników Lightning Network...")
+
+            # 1. Zmiana pojemności LN (24h i 7d)
+            df["ln_capacity_btc_change_24h"] = df[
+                "ln_total_capacity_btc"
+            ].diff(24)
+            df["ln_capacity_btc_change_7d"] = df["ln_total_capacity_btc"].diff(
+                168
+            )
+
+            # 2. Dynamiczny % udział LN w całkowitej podaży BTC
+            if "btc_total_supply" in df.columns :
+                df["ln_supply_ratio_pct"] = (df["ln_total_capacity_btc"] / df["btc_total_supply"]) * 100
+
+        #HODL
+        if "btc_total_supply" in df.columns and "volume_usdt" in df.columns :
+            # 1. Kapitalizacja rynkowa (Market Cap)
+            df["market_cap_usd"] = df[price_col] * df["btc_total_supply"]
+
+            # 2. Wskaźnik NVT (Kapitalizacja / 24h Wolumen)
+            # Wykorzystujemy 24h sumę wolumenu, aby wygładzić szum godzinowy
+            volume_24h = df["volume_usdt"].rolling(24).sum()
+            df["nvt_ratio"] = df["market_cap_usd"] / (volume_24h + 1e-9)
+
+            # 3. NVT Signal (Z-score NVT z okna 30-dniowego)
+            nvt_mean_720 = df["nvt_ratio"].rolling(720).mean()
+            nvt_std_720 = df["nvt_ratio"].rolling(720).std()
+            df["nvt_zscore_30d"] = (df["nvt_ratio"] - nvt_mean_720) / (nvt_std_720 + 1e-9)
 
         # ---------------------------------------------------------------------
         # 5. CZYSZCZENIE I ZAPIS KOŃCOWEGO ZBIORU

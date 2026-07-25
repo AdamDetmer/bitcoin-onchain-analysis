@@ -41,6 +41,9 @@ def run_hourly_pipeline():
     print(" -> [1D] Pobieranie statystyk Lightning Network (mempool.space)...")
     ingestor.get_lightning_network_data()
 
+    print(" -> [1D] Pobieranie historii całkowitej podaży BTC (Blockchain.com)...")
+    ingestor.get_btc_total_supply()
+
     print("\n Pobieranie danych zakończone sukcesem!\n")
 
     # ---------------------------------------------------------
