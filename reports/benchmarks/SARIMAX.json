@@ -1,133 +1,53 @@
 {
   "model_name": "SARIMAX",
-  "accuracy": 0.6148325358851675,
-  "roc_auc": 0.632849469659405,
-  "best_tau": 0.88,
-  "best_precision": 0.5401929260450161,
-  "best_trades": 622,
-  "backtest_win_rate": 0.590032154340836,
-  "backtest_return": -0.659994353207829,
-  "backtest_sharpe": -2.7839796714686464,
+  "accuracy": 0.611244019138756,
+  "roc_auc": 0.6241701214498138,
+  "best_tau": 0.54,
+  "best_precision": 0.7380952380952381,
+  "best_trades": 84,
+  "backtest_win_rate": 0.8095238095238095,
+  "backtest_return": 0.7956022178675102,
+  "backtest_sharpe": 6.911507309746026,
   "threshold_sweep": [
     {
       "tau": 0.5,
-      "trades": 1661,
-      "precision": 0.5243829018663456
+      "trades": 332,
+      "precision": 0.5993975903614458
     },
     {
       "tau": 0.52,
-      "trades": 1616,
-      "precision": 0.5284653465346535
+      "trades": 169,
+      "precision": 0.6923076923076923
     },
     {
       "tau": 0.54,
-      "trades": 1565,
-      "precision": 0.5284345047923322
+      "trades": 84,
+      "precision": 0.7380952380952381
     },
     {
       "tau": 0.56,
-      "trades": 1526,
-      "precision": 0.5334207077326344
-    },
-    {
-      "tau": 0.58,
-      "trades": 1465,
-      "precision": 0.5331058020477816
-    },
-    {
-      "tau": 0.6,
-      "trades": 1416,
-      "precision": 0.5338983050847458
-    },
-    {
-      "tau": 0.62,
-      "trades": 1367,
-      "precision": 0.5318215069495245
-    },
-    {
-      "tau": 0.64,
-      "trades": 1308,
-      "precision": 0.5305810397553516
-    },
-    {
-      "tau": 0.66,
-      "trades": 1247,
-      "precision": 0.5284683239775461
-    },
-    {
-      "tau": 0.68,
-      "trades": 1195,
-      "precision": 0.5288702928870292
-    },
-    {
-      "tau": 0.7,
-      "trades": 1137,
-      "precision": 0.534740545294635
-    },
-    {
-      "tau": 0.72,
-      "trades": 1079,
-      "precision": 0.5384615384615384
-    },
-    {
-      "tau": 0.74,
-      "trades": 1026,
-      "precision": 0.5389863547758285
-    },
-    {
-      "tau": 0.76,
-      "trades": 976,
-      "precision": 0.5348360655737705
-    },
-    {
-      "tau": 0.78,
-      "trades": 919,
-      "precision": 0.5375408052230686
-    },
-    {
-      "tau": 0.8,
-      "trades": 875,
-      "precision": 0.5382857142857143
-    },
-    {
-      "tau": 0.82,
-      "trades": 830,
-      "precision": 0.5373493975903615
-    },
-    {
-      "tau": 0.84,
-      "trades": 761,
-      "precision": 0.533508541392904
-    },
-    {
-      "tau": 0.86,
-      "trades": 685,
-      "precision": 0.5386861313868613
-    },
-    {
-      "tau": 0.88,
-      "trades": 622,
-      "precision": 0.5401929260450161
+      "trades": 38,
+      "precision": 0.7368421052631579
     }
   ],
   "details": {
-    "best_order": [
-      2,
-      0,
-      2
-    ],
-    "aic": -74256.57550180824,
-    "bic": -74162.84497755767,
-    "val_auc": 0.5912834846593571,
+    "best_config": {
+      "name": "ARMAX_202_deriv_n10k",
+      "order": [
+        2,
+        0,
+        2
+      ],
+      "n_samples": 10000
+    },
     "exogenous_features": [
-      "atr_14h_rel",
-      "atr_24h_rel",
       "delta_call_atm_30d",
       "delta_put_atm_30d",
       "delta_call_bias_30d",
       "dvol_close",
-      "high_low_ratio_1h",
-      "bollinger_bandwidth"
-    ]
+      "dvol_zscore_168h"
+    ],
+    "val_auc": 0.6109129194891633,
+    "architecture": "SARIMAX (2, 0, 2) with Calibrated Probabilities"
   }
 }
