@@ -1,0 +1,74 @@
+{
+  "model_name": "SVM",
+  "accuracy": 0.6021531100478469,
+  "roc_auc": 0.5895491908929152,
+  "best_tau": 0.6,
+  "best_precision": 0.65,
+  "best_trades": 180,
+  "backtest_win_rate": 0.6666666666666666,
+  "backtest_return": 0.04383882352423418,
+  "backtest_sharpe": 0.4282392217079887,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 674,
+      "precision": 0.5207715133531158
+    },
+    {
+      "tau": 0.52,
+      "trades": 550,
+      "precision": 0.5363636363636364
+    },
+    {
+      "tau": 0.54,
+      "trades": 424,
+      "precision": 0.5778301886792453
+    },
+    {
+      "tau": 0.56,
+      "trades": 324,
+      "precision": 0.6358024691358025
+    },
+    {
+      "tau": 0.58,
+      "trades": 245,
+      "precision": 0.6448979591836734
+    },
+    {
+      "tau": 0.6,
+      "trades": 180,
+      "precision": 0.65
+    },
+    {
+      "tau": 0.62,
+      "trades": 117,
+      "precision": 0.6324786324786325
+    },
+    {
+      "tau": 0.64,
+      "trades": 85,
+      "precision": 0.5647058823529412
+    },
+    {
+      "tau": 0.66,
+      "trades": 52,
+      "precision": 0.46153846153846156
+    },
+    {
+      "tau": 0.68,
+      "trades": 33,
+      "precision": 0.48484848484848486
+    }
+  ],
+  "details": {
+    "best_config": {
+      "type": "rbf_nystroem",
+      "C": 0.5,
+      "gamma": 0.02,
+      "n_components": 400,
+      "name": "RBF_Nystroem_g0.02_C0.5"
+    },
+    "val_auc": 0.638599268923316,
+    "model_type": "Support Vector Machine"
+  }
+}
