@@ -26,9 +26,9 @@ def load_benchmark_data(num_features=24):
     Load dataset, engineer features, strictly split chronologically,
     and select top features via correlation ranking on TRAIN set only.
     """
-    csv_p = "data/hourly/processed/bitcoin_hourly_final.csv"
-    if not os.path.exists(csv_p):
-        csv_p = os.path.join("..", "..", "..", csv_p)
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    _project_root = os.path.abspath(os.path.join(_script_dir, '..', '..', '..'))
+    csv_p = os.path.join(_project_root, "data", "hourly", "processed", "bitcoin_hourly_final.csv")
     df_raw = pd.read_csv(csv_p)
     df = add_advanced_features_and_targets(df_raw, horizon=24, target_pct=0.015)
     
