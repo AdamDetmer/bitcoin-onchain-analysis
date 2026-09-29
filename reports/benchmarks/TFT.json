@@ -1,0 +1,59 @@
+{
+  "model_name": "TFT",
+  "accuracy": 0.5778205436612942,
+  "roc_auc": 0.5918166824578026,
+  "best_tau": 0.62,
+  "best_precision": 0.5109034267912772,
+  "best_trades": 321,
+  "backtest_win_rate": 0.5607476635514018,
+  "backtest_return": -0.7777470009077494,
+  "backtest_sharpe": -5.267320004692447,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 666,
+      "precision": 0.44294294294294295
+    },
+    {
+      "tau": 0.52,
+      "trades": 628,
+      "precision": 0.4426751592356688
+    },
+    {
+      "tau": 0.54,
+      "trades": 585,
+      "precision": 0.4581196581196581
+    },
+    {
+      "tau": 0.56,
+      "trades": 543,
+      "precision": 0.4567219152854512
+    },
+    {
+      "tau": 0.58,
+      "trades": 498,
+      "precision": 0.46184738955823296
+    },
+    {
+      "tau": 0.6,
+      "trades": 445,
+      "precision": 0.47191011235955055
+    },
+    {
+      "tau": 0.62,
+      "trades": 321,
+      "precision": 0.5109034267912772
+    }
+  ],
+  "details": {
+    "best_config": {
+      "d_model": 64,
+      "num_heads": 8,
+      "lr": 0.0005,
+      "name": "TFT_d64_h8_lr5e-4"
+    },
+    "val_auc": 0.6158888372852831,
+    "architecture": "Temporal Fusion Transformer (TFT)",
+    "window_size": 24
+  }
+}
