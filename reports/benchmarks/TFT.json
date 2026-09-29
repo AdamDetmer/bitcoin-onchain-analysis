@@ -1,59 +1,80 @@
 {
   "model_name": "TFT",
-  "accuracy": 0.5778205436612942,
-  "roc_auc": 0.5918166824578026,
-  "best_tau": 0.62,
-  "best_precision": 0.5109034267912772,
-  "best_trades": 321,
-  "backtest_win_rate": 0.5607476635514018,
-  "backtest_return": -0.7777470009077494,
-  "backtest_sharpe": -5.267320004692447,
+  "accuracy": 0.5840750541255714,
+  "roc_auc": 0.6072964421633423,
+  "best_tau": 0.68,
+  "best_precision": 0.5470085470085471,
+  "best_trades": 117,
+  "backtest_win_rate": 0.5726495726495726,
+  "backtest_return": -0.4617698221010238,
+  "backtest_sharpe": -3.418509775969846,
   "threshold_sweep": [
     {
       "tau": 0.5,
-      "trades": 666,
-      "precision": 0.44294294294294295
+      "trades": 582,
+      "precision": 0.4570446735395189
     },
     {
       "tau": 0.52,
-      "trades": 628,
-      "precision": 0.4426751592356688
+      "trades": 511,
+      "precision": 0.4500978473581213
     },
     {
       "tau": 0.54,
-      "trades": 585,
-      "precision": 0.4581196581196581
+      "trades": 468,
+      "precision": 0.44871794871794873
     },
     {
       "tau": 0.56,
-      "trades": 543,
-      "precision": 0.4567219152854512
+      "trades": 413,
+      "precision": 0.44552058111380144
     },
     {
       "tau": 0.58,
-      "trades": 498,
-      "precision": 0.46184738955823296
+      "trades": 375,
+      "precision": 0.43466666666666665
     },
     {
       "tau": 0.6,
-      "trades": 445,
-      "precision": 0.47191011235955055
+      "trades": 351,
+      "precision": 0.43304843304843305
     },
     {
       "tau": 0.62,
-      "trades": 321,
-      "precision": 0.5109034267912772
+      "trades": 312,
+      "precision": 0.4423076923076923
+    },
+    {
+      "tau": 0.64,
+      "trades": 248,
+      "precision": 0.4637096774193548
+    },
+    {
+      "tau": 0.66,
+      "trades": 181,
+      "precision": 0.5303867403314917
+    },
+    {
+      "tau": 0.68,
+      "trades": 117,
+      "precision": 0.5470085470085471
+    },
+    {
+      "tau": 0.7,
+      "trades": 56,
+      "precision": 0.5178571428571429
     }
   ],
   "details": {
     "best_config": {
-      "d_model": 64,
-      "num_heads": 8,
+      "window": 24,
+      "d_model": 48,
+      "heads": 4,
+      "dropout": 0.4,
       "lr": 0.0005,
-      "name": "TFT_d64_h8_lr5e-4"
+      "name": "W24_d48_h4_dr0.40"
     },
-    "val_auc": 0.6158888372852831,
-    "architecture": "Temporal Fusion Transformer (TFT)",
-    "window_size": 24
+    "val_auc": 0.6284579560413259,
+    "architecture": "Temporal Fusion Transformer (W24_d48_h4_dr0.40)"
   }
 }
