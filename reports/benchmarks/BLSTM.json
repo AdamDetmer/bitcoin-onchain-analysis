@@ -1,0 +1,17 @@
+{
+  "model_name": "BLSTM",
+  "accuracy": 0.6264,
+  "roc_auc": 0.6357,
+  "best_tau": 0.70,
+  "best_precision": 0.8125,
+  "best_trades": 32,
+  "backtest_win_rate": 0.8125,
+  "backtest_return": 0.3009,
+  "backtest_sharpe": 6.73,
+  "details": {
+    "architecture": "Conv1D (32, k=3) + Bidirectional LSTM (64) + Temporal Attention + Dropout(0.3)",
+    "window_size": 24,
+    "features": 24,
+    "val_auc": 0.6450
+  }
+}
