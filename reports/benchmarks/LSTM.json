@@ -1,0 +1,73 @@
+{
+  "model_name": "LSTM",
+  "accuracy": 0.5997113302862641,
+  "roc_auc": 0.6173351100163873,
+  "best_tau": 0.66,
+  "best_precision": 0.676056338028169,
+  "best_trades": 71,
+  "backtest_win_rate": 0.6901408450704225,
+  "backtest_return": -0.11471593059245888,
+  "backtest_sharpe": -0.742875144655333,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 697,
+      "precision": 0.5107604017216643
+    },
+    {
+      "tau": 0.52,
+      "trades": 622,
+      "precision": 0.5064308681672026
+    },
+    {
+      "tau": 0.54,
+      "trades": 528,
+      "precision": 0.5227272727272727
+    },
+    {
+      "tau": 0.56,
+      "trades": 448,
+      "precision": 0.5424107142857143
+    },
+    {
+      "tau": 0.58,
+      "trades": 350,
+      "precision": 0.5342857142857143
+    },
+    {
+      "tau": 0.6,
+      "trades": 281,
+      "precision": 0.5480427046263345
+    },
+    {
+      "tau": 0.62,
+      "trades": 193,
+      "precision": 0.5595854922279793
+    },
+    {
+      "tau": 0.64,
+      "trades": 128,
+      "precision": 0.6328125
+    },
+    {
+      "tau": 0.66,
+      "trades": 71,
+      "precision": 0.676056338028169
+    },
+    {
+      "tau": 0.68,
+      "trades": 43,
+      "precision": 0.6744186046511628
+    }
+  ],
+  "details": {
+    "best_variant": {
+      "name": "LSTM_1L_64",
+      "lr": 0.001,
+      "batch_size": 128
+    },
+    "val_auc": 0.6283251084150602,
+    "architecture": "Unidirectional LSTM",
+    "window_size": 24
+  }
+}
