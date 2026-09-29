@@ -1,106 +1,139 @@
 {
   "model_name": "XGBoost",
-  "accuracy": 0.6102870813397129,
-  "roc_auc": 0.6242898677302544,
-  "best_tau": 0.68,
-  "best_precision": 0.9666666666666667,
-  "best_trades": 30,
-  "backtest_win_rate": 0.9666666666666667,
-  "backtest_return": 0.47196110853728035,
-  "backtest_sharpe": 18.835338790609743,
+  "accuracy": 0.6050239234449761,
+  "roc_auc": 0.6388765803123335,
+  "best_tau": 0.62,
+  "best_precision": 0.8,
+  "best_trades": 35,
+  "backtest_win_rate": 0.8571428571428571,
+  "backtest_return": 0.2953888702865799,
+  "backtest_sharpe": 4.364221723538753,
   "threshold_sweep": [
     {
       "tau": 0.5,
-      "trades": 402,
-      "precision": 0.5771144278606966
+      "trades": 538,
+      "precision": 0.5371747211895911
     },
     {
       "tau": 0.52,
-      "trades": 327,
-      "precision": 0.5902140672782875
+      "trades": 431,
+      "precision": 0.5545243619489559
     },
     {
       "tau": 0.54,
-      "trades": 269,
-      "precision": 0.6133828996282528
+      "trades": 319,
+      "precision": 0.567398119122257
     },
     {
       "tau": 0.56,
-      "trades": 218,
-      "precision": 0.6559633027522935
+      "trades": 217,
+      "precision": 0.6221198156682027
     },
     {
       "tau": 0.58,
-      "trades": 176,
-      "precision": 0.7045454545454546
+      "trades": 128,
+      "precision": 0.6796875
     },
     {
       "tau": 0.6,
-      "trades": 124,
-      "precision": 0.7580645161290323
+      "trades": 73,
+      "precision": 0.7397260273972602
     },
     {
       "tau": 0.62,
-      "trades": 89,
-      "precision": 0.8426966292134831
-    },
-    {
-      "tau": 0.64,
-      "trades": 66,
-      "precision": 0.8636363636363636
-    },
-    {
-      "tau": 0.66,
-      "trades": 43,
-      "precision": 0.8837209302325582
-    },
-    {
-      "tau": 0.68,
-      "trades": 30,
-      "precision": 0.9666666666666667
+      "trades": 35,
+      "precision": 0.8
     }
   ],
   "details": {
     "best_config": {
+      "subsample": 0.65,
+      "reg_lambda": 5.0,
+      "reg_alpha": 1.5,
+      "num_features": 36,
+      "min_child_weight": 5,
       "max_depth": 6,
-      "learning_rate": 0.03,
-      "subsample": 0.8,
-      "colsample_bytree": 0.8,
-      "reg_lambda": 2.0,
-      "reg_alpha": 0.2,
-      "name": "XGB_depth6_lr0.03"
+      "learning_rate": 0.06,
+      "gamma": 0.0,
+      "colsample_bytree": 0.9
     },
-    "best_iteration": 131,
-    "val_auc": 0.6447382064098407,
+    "val_auc": 0.6556106620483173,
+    "num_trials": 40,
+    "feature_cols": [
+      "atr_14h_rel",
+      "atr_24h_rel",
+      "delta_call_atm_30d",
+      "delta_put_atm_30d",
+      "delta_call_bias_30d",
+      "dvol_close",
+      "high_low_ratio_1h",
+      "bollinger_bandwidth",
+      "dvol_zscore_168h",
+      "dist_to_high_24h",
+      "dist_to_high_168h",
+      "whale_vol_sum_168h",
+      "dist_to_low_72h",
+      "day_sin",
+      "dist_to_low_24h",
+      "dist_to_low_168h",
+      "whale_vol_sum_24h",
+      "Volume USDT",
+      "dist_to_high_72h",
+      "tradecount",
+      "total_whale_volume_btc",
+      "whale_tx_count",
+      "btc_total_supply",
+      "dvol_pct_change_24h",
+      "Volume BTC",
+      "day_cos",
+      "ln_total_capacity_btc",
+      "delta_call_momentum_24h",
+      "price_below_options_lower",
+      "ln_supply_ratio_pct",
+      "usdt_volume_usd",
+      "whale_vol_ratio_24h",
+      "total_stablecoin_vol_usd",
+      "vol_surge_24h",
+      "return_168h",
+      "active_addresses"
+    ],
     "feature_importance": {
-      "atr_14h_rel": 0.1005602478981018,
-      "atr_24h_rel": 0.08608861267566681,
-      "delta_call_atm_30d": 0.04313148930668831,
-      "delta_put_atm_30d": 0.04254462197422981,
-      "delta_call_bias_30d": 0.043441612273454666,
+      "atr_14h_rel": 0.14524582028388977,
+      "atr_24h_rel": 0.07109636068344116,
+      "delta_call_atm_30d": 0.031169719994068146,
+      "delta_put_atm_30d": 0.04030607268214226,
+      "delta_call_bias_30d": 0.04296349361538887,
       "dvol_close": 0.0,
-      "high_low_ratio_1h": 0.04921222850680351,
-      "bollinger_bandwidth": 0.030009852722287178,
-      "dvol_zscore_168h": 0.032249804586172104,
-      "dist_to_high_24h": 0.022685155272483826,
-      "dist_to_high_168h": 0.029589608311653137,
-      "whale_vol_sum_168h": 0.03778916969895363,
-      "dist_to_low_72h": 0.03111012652516365,
-      "day_sin": 0.06393789499998093,
-      "dist_to_low_24h": 0.023510318249464035,
-      "dist_to_low_168h": 0.0358271487057209,
-      "whale_vol_sum_24h": 0.031198611482977867,
-      "Volume USDT": 0.015410690568387508,
-      "dist_to_high_72h": 0.03187793493270874,
-      "tradecount": 0.022198952734470367,
-      "total_whale_volume_btc": 0.013399409130215645,
-      "whale_tx_count": 0.019071491435170174,
-      "btc_total_supply": 0.04167820140719414,
-      "dvol_pct_change_24h": 0.02249103970825672,
-      "Volume BTC": 0.013190947473049164,
-      "day_cos": 0.048734214156866074,
-      "ln_total_capacity_btc": 0.04378630220890045,
-      "delta_call_momentum_24h": 0.025274360552430153
+      "high_low_ratio_1h": 0.027922632172703743,
+      "bollinger_bandwidth": 0.02253696881234646,
+      "dvol_zscore_168h": 0.023239795118570328,
+      "dist_to_high_24h": 0.019392387941479683,
+      "dist_to_high_168h": 0.02233080007135868,
+      "whale_vol_sum_168h": 0.025053061544895172,
+      "dist_to_low_72h": 0.024144018068909645,
+      "day_sin": 0.04741900414228439,
+      "dist_to_low_24h": 0.01695341244339943,
+      "dist_to_low_168h": 0.024734701961278915,
+      "whale_vol_sum_24h": 0.019960438832640648,
+      "Volume USDT": 0.016062190756201744,
+      "dist_to_high_72h": 0.02249559946358204,
+      "tradecount": 0.012262261472642422,
+      "total_whale_volume_btc": 0.011140401475131512,
+      "whale_tx_count": 0.01802203431725502,
+      "btc_total_supply": 0.03069695271551609,
+      "dvol_pct_change_24h": 0.02023313194513321,
+      "Volume BTC": 0.011773701757192612,
+      "day_cos": 0.04417300224304199,
+      "ln_total_capacity_btc": 0.029529569670557976,
+      "delta_call_momentum_24h": 0.018295614048838615,
+      "price_below_options_lower": 0.021211806684732437,
+      "ln_supply_ratio_pct": 0.02716531977057457,
+      "usdt_volume_usd": 0.018861262127757072,
+      "whale_vol_ratio_24h": 0.022326907142996788,
+      "total_stablecoin_vol_usd": 0.009354946203529835,
+      "vol_surge_24h": 0.013259009458124638,
+      "return_168h": 0.023818273097276688,
+      "active_addresses": 0.024849344044923782
     }
   }
 }
