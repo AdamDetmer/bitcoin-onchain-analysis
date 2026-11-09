@@ -1,0 +1,52 @@
+{
+  "Exp1_Pure_BLSTM_W24": {
+    "accuracy": 0.6054847245609815,
+    "roc_auc": 0.6389857908619077,
+    "best_tau": 0.5800000000000001,
+    "best_precision": 0.5730088495575221,
+    "best_trades": 452,
+    "backtest_win_rate": 0.6349557522123894,
+    "backtest_return": -0.35957858653684505,
+    "backtest_sharpe": -1.1919850220897585
+  },
+  "Exp2_Conv1D_BLSTM_W24": {
+    "accuracy": 0.6264132788068318,
+    "roc_auc": 0.635701859508403,
+    "best_tau": 0.6200000000000001,
+    "best_precision": 0.6875,
+    "best_trades": 32,
+    "backtest_win_rate": 0.8125,
+    "backtest_return": 0.30086279759103496,
+    "backtest_sharpe": 6.731643251728014
+  },
+  "Exp3_Pure_BLSTM_W48": {
+    "accuracy": 0.5998064360029035,
+    "roc_auc": 0.6320490483432686,
+    "best_tau": 0.6400000000000001,
+    "best_precision": 0.627906976744186,
+    "best_trades": 43,
+    "backtest_win_rate": 0.627906976744186,
+    "backtest_return": -0.2093377968443113,
+    "backtest_sharpe": -1.8936119044023405
+  },
+  "Exp4_Conv1D_BLSTM_W48": {
+    "accuracy": 0.5809339462859908,
+    "roc_auc": 0.5929114490161002,
+    "best_tau": 0.52,
+    "best_precision": 0.5346784363177806,
+    "best_trades": 793,
+    "backtest_win_rate": 0.6355611601513241,
+    "backtest_return": 0.5112640516573299,
+    "backtest_sharpe": 1.5632278543181368
+  },
+  "Exp5_Regularized_BLSTM_W24": {
+    "accuracy": 0.5999518883810441,
+    "roc_auc": 0.6081063087150246,
+    "best_tau": 0.56,
+    "best_precision": 0.588477366255144,
+    "best_trades": 243,
+    "backtest_win_rate": 0.6748971193415638,
+    "backtest_return": 1.1490044357355416,
+    "backtest_sharpe": 4.889349987125288
+  }
+}

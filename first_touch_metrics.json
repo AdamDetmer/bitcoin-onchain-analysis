@@ -1,0 +1,13 @@
+{
+  "accuracy": 0.4822163077667554,
+  "roc_auc": 0.4879642340012594,
+  "best_tau_long": 0.5800000000000001,
+  "best_prec_long": 0.5384615384615384,
+  "long_trades": 117,
+  "best_tau_short": 0.56,
+  "best_prec_short": 0.5186721991701245,
+  "short_trades": 723,
+  "win_rate": 0.5214285714285715,
+  "cum_return": -0.3260093710456027,
+  "sharpe": -1.0055620685808548
+}

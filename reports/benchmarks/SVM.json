@@ -1,0 +1,71 @@
+{
+  "model_name": "SVM",
+  "accuracy": 0.6129186602870813,
+  "roc_auc": 0.6257909728886344,
+  "best_tau": 0.66,
+  "best_precision": 0.7560975609756098,
+  "best_trades": 41,
+  "backtest_win_rate": 0.7560975609756098,
+  "backtest_return": 0.13177340174527963,
+  "backtest_sharpe": 1.498702599079632,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 563,
+      "precision": 0.5648312611012434
+    },
+    {
+      "tau": 0.52,
+      "trades": 469,
+      "precision": 0.5842217484008528
+    },
+    {
+      "tau": 0.54,
+      "trades": 375,
+      "precision": 0.6053333333333333
+    },
+    {
+      "tau": 0.56,
+      "trades": 292,
+      "precision": 0.6301369863013698
+    },
+    {
+      "tau": 0.58,
+      "trades": 212,
+      "precision": 0.6556603773584906
+    },
+    {
+      "tau": 0.6,
+      "trades": 146,
+      "precision": 0.6917808219178082
+    },
+    {
+      "tau": 0.62,
+      "trades": 97,
+      "precision": 0.7216494845360825
+    },
+    {
+      "tau": 0.64,
+      "trades": 63,
+      "precision": 0.7301587301587301
+    },
+    {
+      "tau": 0.66,
+      "trades": 41,
+      "precision": 0.7560975609756098
+    }
+  ],
+  "details": {
+    "best_config": {
+      "name": "RBF_Nys_g0.015_C0.3_u400",
+      "scaler": "std",
+      "n_feat": 24,
+      "type": "rbf_nys",
+      "gamma": 0.015,
+      "C": 0.3,
+      "n_comp": 400
+    },
+    "val_auc": 0.6408775647580316,
+    "architecture": "Support Vector Machine (RBF_Nys_g0.015_C0.3_u400)"
+  }
+}

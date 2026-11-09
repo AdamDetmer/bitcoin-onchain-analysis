@@ -1,0 +1,53 @@
+{
+  "model_name": "SARIMAX",
+  "accuracy": 0.611244019138756,
+  "roc_auc": 0.6241701214498138,
+  "best_tau": 0.54,
+  "best_precision": 0.7380952380952381,
+  "best_trades": 84,
+  "backtest_win_rate": 0.8095238095238095,
+  "backtest_return": 0.7956022178675102,
+  "backtest_sharpe": 6.911507309746026,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 332,
+      "precision": 0.5993975903614458
+    },
+    {
+      "tau": 0.52,
+      "trades": 169,
+      "precision": 0.6923076923076923
+    },
+    {
+      "tau": 0.54,
+      "trades": 84,
+      "precision": 0.7380952380952381
+    },
+    {
+      "tau": 0.56,
+      "trades": 38,
+      "precision": 0.7368421052631579
+    }
+  ],
+  "details": {
+    "best_config": {
+      "name": "ARMAX_202_deriv_n10k",
+      "order": [
+        2,
+        0,
+        2
+      ],
+      "n_samples": 10000
+    },
+    "exogenous_features": [
+      "delta_call_atm_30d",
+      "delta_put_atm_30d",
+      "delta_call_bias_30d",
+      "dvol_close",
+      "dvol_zscore_168h"
+    ],
+    "val_auc": 0.6109129194891633,
+    "architecture": "SARIMAX (2, 0, 2) with Calibrated Probabilities"
+  }
+}

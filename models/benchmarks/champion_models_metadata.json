@@ -1,0 +1,116 @@
+{
+  "feature_cols_36": [
+    "atr_14h_rel",
+    "atr_24h_rel",
+    "delta_call_atm_30d",
+    "delta_put_atm_30d",
+    "delta_call_bias_30d",
+    "dvol_close",
+    "high_low_ratio_1h",
+    "bollinger_bandwidth",
+    "dvol_zscore_168h",
+    "dist_to_high_24h",
+    "dist_to_high_168h",
+    "whale_vol_sum_168h",
+    "dist_to_low_72h",
+    "day_sin",
+    "dist_to_low_24h",
+    "dist_to_low_168h",
+    "whale_vol_sum_24h",
+    "Volume USDT",
+    "dist_to_high_72h",
+    "tradecount",
+    "total_whale_volume_btc",
+    "whale_tx_count",
+    "btc_total_supply",
+    "dvol_pct_change_24h",
+    "Volume BTC",
+    "day_cos",
+    "ln_total_capacity_btc",
+    "delta_call_momentum_24h",
+    "price_below_options_lower",
+    "ln_supply_ratio_pct",
+    "usdt_volume_usd",
+    "whale_vol_ratio_24h",
+    "total_stablecoin_vol_usd",
+    "vol_surge_24h",
+    "return_168h",
+    "active_addresses"
+  ],
+  "feature_cols_24": [
+    "atr_14h_rel",
+    "atr_24h_rel",
+    "delta_call_atm_30d",
+    "delta_put_atm_30d",
+    "delta_call_bias_30d",
+    "dvol_close",
+    "high_low_ratio_1h",
+    "bollinger_bandwidth",
+    "dvol_zscore_168h",
+    "dist_to_high_24h",
+    "dist_to_high_168h",
+    "whale_vol_sum_168h",
+    "dist_to_low_72h",
+    "day_sin",
+    "dist_to_low_24h",
+    "dist_to_low_168h",
+    "whale_vol_sum_24h",
+    "Volume USDT",
+    "dist_to_high_72h",
+    "tradecount",
+    "total_whale_volume_btc",
+    "whale_tx_count",
+    "btc_total_supply",
+    "dvol_pct_change_24h"
+  ],
+  "models": {
+    "XGBoost": {
+      "file": "xgboost_champion.json",
+      "num_features": 36,
+      "best_tau": 0.62,
+      "win_rate": 0.8571,
+      "net_return": 0.2954
+    },
+    "SVM": {
+      "file": "svm_champion.joblib",
+      "num_features": 24,
+      "best_tau": 0.66,
+      "win_rate": 0.7561,
+      "net_return": 0.1318
+    },
+    "SARIMAX": {
+      "file": "sarimax_champion.joblib",
+      "order": [
+        2,
+        0,
+        2
+      ],
+      "exog_features": [
+        "delta_call_atm_30d",
+        "delta_put_atm_30d",
+        "delta_call_bias_30d",
+        "dvol_close",
+        "dvol_zscore_168h"
+      ],
+      "best_tau": 0.54,
+      "win_rate": 0.8095,
+      "net_return": 0.7956
+    },
+    "LSTM": {
+      "file": "lstm_champion.keras",
+      "window": 48,
+      "num_features": 24,
+      "best_tau": 0.72,
+      "win_rate": 0.9,
+      "net_return": 0.5527
+    },
+    "BLSTM": {
+      "file": "blstm_champion.keras",
+      "window": 24,
+      "num_features": 24,
+      "best_tau": 0.7,
+      "win_rate": 0.8125,
+      "net_return": 0.3009
+    }
+  }
+}

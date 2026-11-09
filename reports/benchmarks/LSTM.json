@@ -1,0 +1,87 @@
+{
+  "model_name": "LSTM",
+  "accuracy": 0.6152915557706267,
+  "roc_auc": 0.6375364434318302,
+  "best_tau": 0.72,
+  "best_precision": 0.875,
+  "best_trades": 40,
+  "backtest_win_rate": 0.9,
+  "backtest_return": 0.5526768534023436,
+  "backtest_sharpe": 11.968902262730644,
+  "threshold_sweep": [
+    {
+      "tau": 0.5,
+      "trades": 773,
+      "precision": 0.55627425614489
+    },
+    {
+      "tau": 0.52,
+      "trades": 705,
+      "precision": 0.5631205673758866
+    },
+    {
+      "tau": 0.54,
+      "trades": 633,
+      "precision": 0.5781990521327014
+    },
+    {
+      "tau": 0.56,
+      "trades": 544,
+      "precision": 0.5900735294117647
+    },
+    {
+      "tau": 0.58,
+      "trades": 450,
+      "precision": 0.6088888888888889
+    },
+    {
+      "tau": 0.6,
+      "trades": 366,
+      "precision": 0.6612021857923497
+    },
+    {
+      "tau": 0.62,
+      "trades": 286,
+      "precision": 0.7097902097902098
+    },
+    {
+      "tau": 0.64,
+      "trades": 205,
+      "precision": 0.7121951219512195
+    },
+    {
+      "tau": 0.66,
+      "trades": 155,
+      "precision": 0.7096774193548387
+    },
+    {
+      "tau": 0.68,
+      "trades": 100,
+      "precision": 0.77
+    },
+    {
+      "tau": 0.7,
+      "trades": 62,
+      "precision": 0.8387096774193549
+    },
+    {
+      "tau": 0.72,
+      "trades": 40,
+      "precision": 0.875
+    }
+  ],
+  "details": {
+    "best_config": {
+      "window": 48,
+      "units": 48,
+      "layers": 1,
+      "dropout": 0.25,
+      "l2": 0.0002,
+      "res": true,
+      "lr": 0.0006,
+      "name": "W48_1L_u48_res"
+    },
+    "val_auc": 0.6407462973648779,
+    "architecture": "Unidirectional LSTM (W48_1L_u48_res)"
+  }
+}
