@@ -14,6 +14,8 @@ def run_pipeline():
     ingestor.get_stablecoin_data()
     ingestor.get_active_addresses_data(start_time="2014-01-01")
     ingestor.get_lightning_network_data()
+    ingestor.get_hodl_wave_data()
+    ingestor.get_whale_transaction_data()
 
     # 2. Preprocessing
     preprocessor = DataPreprocessor()

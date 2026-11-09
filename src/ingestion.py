@@ -203,3 +203,224 @@ class DataIngestor:
         except Exception as e:
             print(f"Błąd przy pobieraniu danych stablecoin: {e}")
             return None
+
+    def get_hodl_wave_data(self, start_time="2014-01-01"):
+        """
+        Pobiera dane HODL Wave z CoinMetrics Community API (bezpłatne, bez klucza).
+
+        Metryki:
+        - SplyAct1yr:    % supply, który NIE ruszył się przez >1 rok (HODL proxy)
+        - SplyAct180d:   % supply aktywny w ostatnich 180 dniach (STH proxy)
+        - SplyActEver:   łączna podaż, która kiedykolwiek się ruszyła
+
+        Interpretacja dla modelu:
+        - Rosnący SplyAct1yr = akumulacja / HODL → sygnał byczy długoterminowo
+        - Spadający SplyAct1yr przy wzroście ceny = wieloryby sprzedają szczyty
+        """
+        print(f"Pobieranie danych HODL Wave z CoinMetrics Community (od {start_time})...")
+
+        # Te metryki są DARMOWE w Community API — sprawdzone przez CoinMetrics docs
+        metrics_to_fetch = [
+            "SplyAct1yr",    # Supply nieruszone >1 rok (core HODL wave)
+            "SplyAct180d",   # Supply aktywne w <180 dni (short-term holders)
+            "SplyAct30d",    # Supply aktywne w <30 dni (spekulanci)
+            "RevAllTime",    # Realized Value — proxy wyceny rynku przez "smart money"
+        ]
+
+        url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+        all_data = []
+        next_page = None
+
+        params = {
+            "assets": "btc",
+            "metrics": ",".join(metrics_to_fetch),
+            "frequency": "1d",
+            "start_time": start_time,
+            "page_size": 10000,
+        }
+
+        try:
+            while True:
+                if next_page:
+                    params["next_page_token"] = next_page
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                result = response.json()
+                all_data.extend(result["data"])
+                next_page = result.get("next_page_token")
+                if not next_page:
+                    break
+                time.sleep(0.5)
+
+            df = pd.DataFrame(all_data)
+            df["date"] = pd.to_datetime(df["time"]).dt.tz_localize(None).dt.normalize()
+
+            # Konwersja metryk na numeryczne
+            for col in metrics_to_fetch:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+            df = df.rename(columns={
+                "SplyAct1yr":  "hodl_1yr_supply",   # BTC nieruszone >1 rok
+                "SplyAct180d": "hodl_180d_supply",   # BTC aktywne <180d (STH)
+                "SplyAct30d":  "hodl_30d_supply",    # BTC aktywne <30d (spekulanci)
+                "RevAllTime":  "realized_value_usd", # Realized cap USD
+            })
+
+            # Oblicz hodl_ratio: jaki % podaży siedzi w "silnych rękach" (>1 rok)?
+            # Wymagana całkowita podaż — estymacja ze stałej (dokładniejsza niż magic number)
+            if "hodl_1yr_supply" in df.columns and "hodl_30d_supply" in df.columns:
+                # Różnica: BTC trzymane 30d-1yr to "chwiejne" ręce
+                df["stale_vs_liquid_ratio"] = df["hodl_1yr_supply"] / (df["hodl_30d_supply"] + 1)
+
+            keep_cols = ["date"] + [c for c in [
+                "hodl_1yr_supply", "hodl_180d_supply", "hodl_30d_supply",
+                "realized_value_usd", "stale_vs_liquid_ratio"
+            ] if c in df.columns]
+
+            df = df[keep_cols].dropna(subset=["hodl_1yr_supply"])
+
+            path = os.path.join(self.base_dir, "hodl_wave_data.csv")
+            df.to_csv(path, index=False)
+            print(f"Sukces! Dane HODL Wave zapisane w: {path} ({len(df)} rekordów)")
+            print(f"   Zakres: {df['date'].min().date()} → {df['date'].max().date()}")
+            return df
+
+        except Exception as e:
+            print(f"Błąd przy pobieraniu HODL Wave z CoinMetrics: {e}")
+            return None
+
+    def get_whale_transaction_data(self, start_time="2014-01-01"):
+        """
+        Pobiera proxy dla ruchów wielorybów z CoinMetrics Community API + Blockchain.com.
+
+        Strategia dwóch źródeł (oba bezpłatne):
+
+        1. CoinMetrics Community → TxTfrValAdjUSD + TxCnt100kUSD (liczba tx >100k USD)
+           - TxTfrValAdjUSD: Wartość przesyłów oczyszczona z "change outputs" (noise)
+                             Dużo dokładniejsza od surowego volume — proxy "prawdziwego"
+                             przepływu kapitału między portfelami.
+           - TxCnt10kUSD, TxCnt100kUSD, TxCnt1mUSD: liczba transakcji powyżej progu $
+                             KLUCZOWE: skoki w TxCnt1mUSD = wieloryby się ruszają.
+
+        2. Blockchain.com → median-transaction-value (mediana wartości tx w USD)
+           - Mediana jest odporna na outliery — gdy rośnie, WSZYSCY wysyłają więcej,
+             nie tylko jeden wieloryb. Komplementarne do metryk CoinMetrics.
+
+        Połączone dają solidny, darmowy "whale fingerprint" bez płatnych API.
+        """
+        print(f"Pobieranie danych ruchów wielorybów (od {start_time})...")
+
+        # --- Część 1: CoinMetrics Community (bez klucza) ---
+        cm_metrics = [
+            "TxTfrValAdjUSD",  # Adjusted transfer value USD (bez change outputs)
+            "TxCnt",           # Łączna liczba transakcji
+            "TxCnt10kUSD",     # Liczba tx > $10k — "średnia ryba"
+            "TxCnt100kUSD",    # Liczba tx > $100k — duży gracz
+            "TxCnt1mUSD",      # Liczba tx > $1M — wieloryb
+        ]
+
+        url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+        all_data = []
+        next_page = None
+        params = {
+            "assets": "btc",
+            "metrics": ",".join(cm_metrics),
+            "frequency": "1d",
+            "start_time": start_time,
+            "page_size": 10000,
+        }
+
+        cm_df = None
+        try:
+            while True:
+                if next_page:
+                    params["next_page_token"] = next_page
+                r = requests.get(url, params=params, timeout=30)
+                r.raise_for_status()
+                result = r.json()
+                all_data.extend(result["data"])
+                next_page = result.get("next_page_token")
+                if not next_page:
+                    break
+                time.sleep(0.5)
+
+            cm_df = pd.DataFrame(all_data)
+            cm_df["date"] = pd.to_datetime(cm_df["time"]).dt.tz_localize(None).dt.normalize()
+
+            for col in cm_metrics:
+                if col in cm_df.columns:
+                    cm_df[col] = pd.to_numeric(cm_df[col], errors="coerce")
+
+            cm_df = cm_df.rename(columns={
+                "TxTfrValAdjUSD": "whale_adj_transfer_usd",  # Oczyszczony wolumen USD
+                "TxCnt":          "whale_total_tx_count",
+                "TxCnt10kUSD":    "whale_tx_above_10k",      # Tx > $10k
+                "TxCnt100kUSD":   "whale_tx_above_100k",     # Tx > $100k ← kluczowe
+                "TxCnt1mUSD":     "whale_tx_above_1m",       # Tx > $1M ← wieloryby
+            })
+
+            # Wskaźnik dominacji wielorybów: % wszystkich tx to "wielorybie"
+            if "whale_tx_above_100k" in cm_df.columns and "whale_total_tx_count" in cm_df.columns:
+                cm_df["whale_dominance_pct"] = (
+                    cm_df["whale_tx_above_100k"] / (cm_df["whale_total_tx_count"] + 1) * 100
+                )
+
+            # Trend 7-dniowy dla modelu (filtruje jednorazowe szoki)
+            if "whale_tx_above_1m" in cm_df.columns:
+                cm_df["whale_tx_1m_7d_avg"] = cm_df["whale_tx_above_1m"].rolling(7).mean()
+
+            keep = ["date"] + [c for c in [
+                "whale_adj_transfer_usd", "whale_total_tx_count",
+                "whale_tx_above_10k", "whale_tx_above_100k", "whale_tx_above_1m",
+                "whale_dominance_pct", "whale_tx_1m_7d_avg"
+            ] if c in cm_df.columns]
+            cm_df = cm_df[keep]
+            print(f"   CoinMetrics: {len(cm_df)} rekordów whale tx")
+
+        except Exception as e:
+            print(f"   Uwaga: CoinMetrics whale TX nie powiodło się: {e}")
+            cm_df = None
+
+        # --- Część 2: Blockchain.com — mediana wartości transakcji ---
+        bchain_df = None
+        try:
+            print("   Pobieranie mediany tx z Blockchain.com...")
+            url2 = "https://api.blockchain.info/charts/median-transaction-value"
+            params2 = {
+                "timespan": "5years",
+                "sampled": "true",
+                "format": "json",
+                "cors": "true"
+            }
+            r2 = requests.get(url2, params=params2, timeout=30)
+            r2.raise_for_status()
+            data2 = r2.json()
+
+            bchain_df = pd.DataFrame(data2["values"])
+            bchain_df.columns = ["timestamp", "whale_median_tx_usd"]
+            bchain_df["date"] = pd.to_datetime(bchain_df["timestamp"], unit="s").dt.normalize()
+            bchain_df = bchain_df[["date", "whale_median_tx_usd"]]
+            print(f"   Blockchain.com mediana: {len(bchain_df)} rekordów")
+            time.sleep(1)
+
+        except Exception as e:
+            print(f"   Uwaga: Blockchain.com median TX nie powiodło się: {e}")
+
+        # --- Łączenie obu źródeł ---
+        if cm_df is not None and bchain_df is not None:
+            final_df = pd.merge(cm_df, bchain_df, on="date", how="outer")
+        elif cm_df is not None:
+            final_df = cm_df
+        elif bchain_df is not None:
+            final_df = bchain_df
+        else:
+            print("Błąd: Oba źródła danych whale TX zawiodły.")
+            return None
+
+        final_df = final_df.sort_values("date").reset_index(drop=True)
+
+        path = os.path.join(self.base_dir, "whale_transaction_data.csv")
+        final_df.to_csv(path, index=False)
+        print(f"Sukces! Dane whale TX zapisane w: {path} ({len(final_df)} rekordów)")
+        return final_df

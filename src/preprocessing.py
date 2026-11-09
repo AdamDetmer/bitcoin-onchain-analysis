@@ -46,7 +46,22 @@ class DataPreprocessor:
             print(f"  + Lightning Network (mempool.space): {ln_df['date'].min().date()} → {ln_df['date'].max().date()}")
             print(f"    (Uwaga: LN istnieje od 2018 — wiersze przed 2018 mają NaN w kolumnach LN)")
 
-        
+        hodl_path = os.path.join(self.raw_dir, "hodl_wave_data.csv")
+        if os.path.exists(hodl_path) :
+            hodl_df = pd.read_csv(hodl_path)
+            hodl_df['date'] = pd.to_datetime(hodl_df['date'])
+            master_df = pd.merge(master_df, hodl_df, on='date', how='left')
+            print(f"  + HODL Wave (CoinMetrics): {hodl_df['date'].min().date()} → {hodl_df['date'].max().date()}")
+            print(f"    Kolumny: {[c for c in hodl_df.columns if c != 'date']}")
+
+        whale_path = os.path.join(self.raw_dir, "whale_transaction_data.csv")
+        if os.path.exists(whale_path) :
+            whale_df = pd.read_csv(whale_path)
+            whale_df['date'] = pd.to_datetime(whale_df['date'])
+            master_df = pd.merge(master_df, whale_df, on='date', how='left')
+            print(f"  + Whale Transactions (CoinMetrics + Blockchain.com): "
+                  f"{whale_df['date'].min().date()} → {whale_df['date'].max().date()}")
+
         # Sortowanie po dacie (kluczowe dla szeregów czasowych!)
         master_df = master_df.sort_values('date').reset_index(drop=True)
 
