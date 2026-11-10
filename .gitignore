@@ -15,4 +15,7 @@ data/processed/
 Thumbs.db
 
 # IDE
-.idea/
+.idea/
+# Klucze API i hasła
+secrets.yml
+.env
